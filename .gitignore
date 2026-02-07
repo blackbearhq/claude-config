@@ -1,0 +1,42 @@
+# Personal plan files (generated per-session)
+plans/
+
+# Session-specific state and caches
+.claude-session/
+cache/
+paste-cache/
+shell-snapshots/
+stats-cache.json
+file-history/
+history.jsonl
+statsig/
+tasks/
+todos/
+debug/
+
+# Personal settings (machine-specific)
+settings.json
+settings.json.*
+
+# Internal directories (Claude Code managed)
+agents/
+commands/
+plugins/
+projects/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Personal overrides (if you want to extend the config locally)
+CLAUDE.local.md
+
+# Logs
+*.log
