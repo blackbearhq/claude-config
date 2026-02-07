@@ -1,4 +1,4 @@
-# Black Bear Studio — Claude Code Configuration
+# BlackBear Studio — Claude Code Configuration
 
 > Shared Claude Code configuration for Black Bear Studio team members
 

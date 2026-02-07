@@ -1,7 +1,7 @@
-# Diego Franciosi — Global Claude Code Config
+# BlackBear Studio — Global Claude Code Config
 
 ## Identity
-- Builder: Black Bear Studio (blackbear.so)
+- Builder: BlackBear Studio (blackbear.so)
 - Core Stack: TypeScript, Next.js, React, Tailwind, Vercel
 - Common Tools: PostgreSQL + pgvector, Drizzle ORM, Stripe, Supabase Auth
 
