@@ -13,14 +13,13 @@ statsig/
 tasks/
 todos/
 debug/
+ide/
 
 # Personal settings (machine-specific)
 settings.json
 settings.json.*
 
 # Internal directories (Claude Code managed)
-agents/
-commands/
 plugins/
 projects/
 

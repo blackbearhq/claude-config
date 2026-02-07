@@ -14,6 +14,27 @@ When you install this configuration, Claude Code will automatically:
 - Optimize for cost (Sonnet for implementation, Haiku for exploration)
 - Run quality checks before task completion
 
+## What's Included
+
+This configuration includes:
+
+- **CLAUDE.md** - Main workflow rules and code standards
+- **skills/** - Custom Black Bear Studio skills
+  - `bbs-brand` - Brand guidelines for client-facing materials
+  - `deploy-checklist` - Pre-deployment verification for Vercel/Next.js
+- **agents/** - Custom agent definitions for specialized tasks
+  - `test-gen` - TDD test generation (write failing tests first)
+  - `code-reviewer` - Code quality and security reviews
+  - `explorer` - Fast codebase exploration
+  - `pr-prep` - PR description generation
+  - `architect` - System design and architecture planning
+- **commands/** - Workflow shortcuts
+  - `implement` - Full TDD implementation workflow
+  - `init` - Session initialization
+  - `cost-check` - Token usage monitoring
+
+All agents and commands follow Black Bear Studio's engineering practices.
+
 ## Installation
 
 ### Prerequisites
