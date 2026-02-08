@@ -39,6 +39,12 @@ If the reviewer flags 🔴 Critical issues, fix them before reporting.
 - When asked to "commit changes" on main, STOP and ask if I want a branch first
 - Only push to main via PR merge
 
+# Git Guidelines
+- NEVER run `git diff` without flags — it hangs on large diffs
+- Always use `git diff --stat` for overview of changes
+- Use `git diff --stat --cached` for staged changes
+- If you need actual diff content, use `git diff -- <specific-file>` for targeted files only
+
 ## Cost Discipline
 - Default to Sonnet for implementation work
 - Use Haiku sub-agents for exploration, search, and summarization
