@@ -51,9 +51,9 @@ All agents and commands follow Black Bear Studio's engineering practices.
 
 2. **Clone this repo to your home directory**
    ```bash
-   git clone git@github.com:blackbearstudio/claude-config.git ~/.claude
+   git clone git@github.com:blackbearhq/claude-config.git ~/.claude
    # Or use HTTPS:
-   # git clone https://github.com/blackbearstudio/claude-config.git ~/.claude
+   # git clone https://github.com/blackbearhq/claude-config.git ~/.claude
    ```
 
 3. **Verify installation**
