@@ -39,3 +39,4 @@ CLAUDE.local.md
 
 # Logs
 *.log
+**/MEMORY.md
