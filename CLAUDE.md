@@ -3,6 +3,7 @@
 ## Identity
 - Builder: BlackBear Studio (blackbear.so)
 - Core Stack: TypeScript, Next.js, React, Tailwind, Vercel
+- UI Components: shadcn/ui (default for all new web projects)
 - Common Tools: PostgreSQL + pgvector, Drizzle ORM, Stripe, Supabase Auth
 
 ## Workflow Rules
@@ -10,8 +11,22 @@
 - ALWAYS run tests after modifying business logic
 - Use Prettier formatting (auto-configured via .prettierrc)
 - Commit messages: conventional commits (feat:, fix:, chore:, docs:)
-- Do NOT add "Co-Authored-By: Claude" to commit messages
 - Never commit .env files. Use .env.example for documentation
+
+## Git Attribution Rules
+- NEVER add "Co-Authored-By: Claude" or any AI co-author trailer to commits
+- NEVER set git user.name or user.email to Claude or any AI identity
+- NEVER add Claude as a contributor, reviewer, or assignee on GitHub PRs/issues
+- Git commits must always use the human developer's identity only
+- PR descriptions may reference AI assistance but never attribute authorship
+
+## UI Component Workflow (shadcn/ui)
+- Use shadcn/ui as the default component library for all web projects
+- Initialize with `npx shadcn@latest init` when setting up new projects
+- Add components on demand: `npx shadcn@latest add <component>`
+- Prefer shadcn/ui components over custom implementations for standard UI patterns (buttons, dialogs, forms, tables, etc.)
+- Customize via Tailwind classes and CSS variables, not by forking component internals
+- When a project already uses a different component library, follow the existing convention
 
 ## Workflow: Implementing Issues (TDD)
 When asked to implement a feature, fix, or issue, follow this sequence:
