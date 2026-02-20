@@ -19,19 +19,20 @@ When you install this configuration, Claude Code will automatically:
 This configuration includes:
 
 - **CLAUDE.md** - Main workflow rules and code standards
-- **skills/** - Custom Black Bear Studio skills
+- **skills/** - Custom Black Bear Studio skills (auto-invoked or via slash commands)
   - `bbs-brand` - Brand guidelines for client-facing materials
   - `deploy-checklist` - Pre-deployment verification for Vercel/Next.js
+  - `code-review` - Code quality and security reviews (auto-invoked at review step)
+  - `test-gen` - TDD test generation, write failing tests first (auto-invoked at test step)
 - **agents/** - Custom agent definitions for specialized tasks
-  - `test-gen` - TDD test generation (write failing tests first)
-  - `code-reviewer` - Code quality and security reviews
   - `explorer` - Fast codebase exploration
   - `pr-prep` - PR description generation
   - `architect` - System design and architecture planning
-- **commands/** - Workflow shortcuts
+- **commands/** - Workflow slash commands
   - `implement` - Full TDD implementation workflow
   - `init` - Session initialization
   - `cost-check` - Token usage monitoring
+  - `skip-tests` - Bypass test steps for ui/config issues
 
 All agents and commands follow Black Bear Studio's engineering practices.
 
