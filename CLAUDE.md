@@ -31,19 +31,31 @@
 ## Workflow: Implementing Issues (TDD)
 When asked to implement a feature, fix, or issue, follow this sequence:
 
+0. **Classify**: Identify the issue type before doing anything else:
+   - `logic` — business logic, API, DB, auth, data transformation → full TDD required
+   - `ui` — components, layout, styling, copy → skip steps 4–7, use visual review instead
+   - `config` — tooling, env, scripts, docs → skip steps 4–7 entirely
+   State the classification out loud before proceeding.
+
 1. **Branch**: Create a feature branch from main (never commit to main directly)
 2. **Explore**: Delegate to the `explorer` agent to find relevant files and patterns
 3. **Plan**: Present a brief implementation plan (max 7 steps). Wait for my approval
-4. **Test first**: Delegate to the `test-gen` agent to write failing tests that define the expected behavior
-5. **Verify red**: Run tests — confirm they FAIL. If they pass, the tests aren't testing anything new
+4. **Test first** _(logic only)_: Delegate to the `test-gen` agent to write failing tests that define the expected behavior
+5. **Verify red** _(logic only)_: Run tests — confirm they FAIL. If they pass, the tests aren't testing anything new
 6. **Implement**: Write the minimum code to make tests pass (main session, Sonnet)
-7. **Verify green**: Run tests — confirm they PASS
+7. **Verify green** _(logic only)_: Run `npm run test:run -- --testPathPattern=<changed-file>`. Confirm they PASS. Never run the full test suite during TDD cycles — full suite runs at PR prep stage only.
 8. **Refactor**: Clean up while keeping tests green
 9. **Review**: Delegate to the `code-reviewer` agent to review all changes
 10. **Report**: Summarize what was done, flag any reviewer concerns, ask if I want to commit
 
-Red → Green → Refactor. Do NOT skip the test-first step.
+Red → Green → Refactor. Steps 4–7 are gated on `logic` classification only.
 If the reviewer flags 🔴 Critical issues, fix them before reporting.
+
+### Skip Protocol
+If the prompt includes `[skip-tests]`, bypass steps 4–7 without asking.
+- Only valid for `ui` and `config` issue types. Refuse if classification is `logic`.
+- Note the skip reason in the PR description under a `## Skipped Tests` heading.
+- Use `/skip-tests` slash command to invoke this flow explicitly.
 
 ## Branching Rules
 - NEVER commit directly to main or master
