@@ -40,12 +40,12 @@ When asked to implement a feature, fix, or issue, follow this sequence:
 1. **Branch**: Create a feature branch from main (never commit to main directly)
 2. **Explore**: Delegate to the `explorer` agent to find relevant files and patterns
 3. **Plan**: Present a brief implementation plan (max 7 steps). Wait for my approval
-4. **Test first** _(logic only)_: Delegate to the `test-gen` agent to write failing tests that define the expected behavior
+4. **Test first** _(logic only)_: Invoke the `test-gen` skill to write failing tests that define the expected behavior
 5. **Verify red** _(logic only)_: Run tests — confirm they FAIL. If they pass, the tests aren't testing anything new
 6. **Implement**: Write the minimum code to make tests pass (main session, Sonnet)
 7. **Verify green** _(logic only)_: Run `npm run test:run -- --testPathPattern=<changed-file>`. Confirm they PASS. Never run the full test suite during TDD cycles — full suite runs at PR prep stage only.
 8. **Refactor**: Clean up while keeping tests green
-9. **Review**: Delegate to the `code-reviewer` agent to review all changes
+9. **Review**: Invoke the `code-review` skill to review all changes
 10. **Report**: Summarize what was done, flag any reviewer concerns, ask if I want to commit
 
 Red → Green → Refactor. Steps 4–7 are gated on `logic` classification only.
@@ -95,7 +95,12 @@ If the prompt includes `[skip-tests]`, bypass steps 4–7 without asking.
 - If unsure, ask — don't guess
 
 ## Available Skills
-- /code-review — Reviews code for quality, security, and patterns
-- /test-gen — Generates tests following project conventions
-- /pr-prep — Prepares PR description and changelist
-- /explore-codebase — Read-only codebase analysis (Haiku)
+- /implement — Main workflow entry point (manual)
+- /pr-prep — PR description and changelist (manual)
+- /skip-tests — Bypass test steps for ui/config issues (manual)
+- /cost-check — Token usage and cost analysis (manual)
+- /init — Session initialisation (manual)
+- code-review — Skill, auto-invoked at workflow step 9
+- test-gen — Skill, auto-invoked at workflow step 4
+- bbs-brand — Skill, auto-invoked for copy and client-facing content
+- deploy-checklist — Skill, auto-invoked before deployments
