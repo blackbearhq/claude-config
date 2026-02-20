@@ -1,7 +1,7 @@
 ---
 name: test-gen
 description: Generates tests BEFORE implementation (TDD). Use at the start of feature work to define expected behavior as failing tests. Also use after refactoring to verify coverage.
-model: sonnet
+model: haiku
 tools: Read, Write, Bash, Glob, Grep
 color: green
 ---
@@ -28,3 +28,6 @@ Rules:
 - Descriptive names: "should [expected behavior] when [condition]"
 - Mock external dependencies, not internal logic
 - Keep tests focused — one assertion per concept
+- Always run with `--testPathPattern=<changed-file>`, never the full suite
+
+Model escalation: default is Haiku. Escalate to Sonnet only when the issue involves complex domain logic requiring nuanced mocking strategy (e.g., multi-step auth flows, transaction rollbacks, distributed state).
