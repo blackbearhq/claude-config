@@ -24,6 +24,7 @@ This configuration includes:
   - `deploy-checklist` - Pre-deployment verification for Vercel/Next.js
   - `code-review` - Code quality and security reviews (auto-invoked at review step)
   - `test-gen` - TDD test generation, write failing tests first (auto-invoked at test step)
+  - `glacier-sync` - Sync repo activity with Glacier board via MCP (auto-invoked on PR merge, branch creation; opt-in via `.glacier.json`)
 - **agents/** - Custom agent definitions for specialized tasks
   - `explorer` - Fast codebase exploration
   - `pr-prep` - PR description generation
@@ -33,8 +34,37 @@ This configuration includes:
   - `init` - Session initialization
   - `cost-check` - Token usage monitoring
   - `skip-tests` - Bypass test steps for ui/config issues
+  - `glacier-sync` - Sync current repo with Glacier board
 
 All agents and commands follow Black Bear Studio's engineering practices.
+
+## Glacier Sync (opt-in)
+
+The `glacier-sync` skill bridges GitHub workflow to [Glacier](https://getglacier.ai) boards via MCP. It only activates in projects that have a `.glacier.json` config file in the repo root.
+
+### Enable for a project
+
+Add `.glacier.json` to your repo root:
+
+```json
+{
+  "enabled": true,
+  "workspace": "blackbear",
+  "project": "glacier",
+  "mcp_url": "https://www.getglacier.ai/api/mcp"
+}
+```
+
+### What it does
+
+- **Card status sync** — Moves Glacier cards when PRs are merged (matches by GitHub link, branch name, or PR title)
+- **TODO scanning** — Creates cards from `// TODO(glacier):` comments in code
+- **Board status** — Reports cards per column, WIP limit status, blockers
+- **Issue linking** — Links GitHub issues to Glacier cards after creation
+
+### Disable for a project
+
+Remove `.glacier.json` or set `"enabled": false`. The skill skips silently when no config is found.
 
 ## Installation
 

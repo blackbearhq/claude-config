@@ -100,7 +100,9 @@ If the prompt includes `[skip-tests]`, bypass steps 4–7 without asking.
 - /skip-tests — Bypass test steps for ui/config issues (manual)
 - /cost-check — Token usage and cost analysis (manual)
 - /init — Session initialisation (manual)
+- /glacier-sync — Sync repo activity with Glacier board (manual)
 - code-review — Skill, auto-invoked at workflow step 9
 - test-gen — Skill, auto-invoked at workflow step 4
 - bbs-brand — Skill, auto-invoked for copy and client-facing content
 - deploy-checklist — Skill, auto-invoked before deployments
+- glacier-sync — Skill, auto-invoked after PR merge, branch creation, or board sync requests (requires `.glacier.json` in repo root)
