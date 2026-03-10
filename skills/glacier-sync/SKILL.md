@@ -1,14 +1,23 @@
 ---
 name: glacier-sync
-description: Syncs work tracking between the current repo and Glacier board. Auto-invoke after branch creation (step 1 of implement workflow), PR open, PR merge, or when the user mentions board sync, card status, or Glacier tracking. Only activates in projects with a `.glacier.json` config file in the repo root.
+description: >
+  Optional skill. Syncs work tracking between the current repo and Glacier board.
+  Auto-invoke after branch creation (step 1 of implement workflow), PR open, PR merge,
+  or when the user mentions board sync, card status, or Glacier tracking.
+  Only activates in projects with a `.glacier.json` config file in the repo root.
+  If the skill is not enabled or `.glacier.json` is absent, skip silently — never fail the workflow.
 ---
 # Glacier Sync
 
 Keep the Glacier board in sync with development activity. This skill bridges GitHub workflow events to Glacier cards via MCP.
 
+**This skill is optional.** It enhances the workflow but is never required. If the skill is not loaded, not enabled, or `.glacier.json` is missing, the calling workflow (e.g. `/implement`) must continue without interruption.
+
 ## Activation
 
-This skill only activates when a `.glacier.json` file exists in the project root:
+This skill only activates when **both** conditions are met:
+1. The `glacier-sync` skill is enabled in the current Claude Code session
+2. A `.glacier.json` file exists in the project root:
 
 ```json
 {
@@ -19,11 +28,11 @@ This skill only activates when a `.glacier.json` file exists in the project root
 }
 ```
 
-If no `.glacier.json` is found, skip silently — do not prompt the user to create one.
+If either condition is not met, skip silently — do not prompt the user to create the file or enable the skill. Do not error. Do not block the workflow.
 
 ## Auto-invoke triggers
 
-This skill should fire automatically at these workflow moments:
+This skill should fire automatically at these workflow moments **if activated**:
 
 | Trigger | When | Action |
 |---------|------|--------|
@@ -31,6 +40,8 @@ This skill should fire automatically at these workflow moments:
 | **PR opened** | After `gh pr create` | Move linked card → **In Review** |
 | **PR merged** | After PR merge confirmed | Move linked card → **Done** |
 | **Manual** | User runs `/glacier-sync` | Interactive menu (see Capabilities §3) |
+
+If any trigger fails (MCP unreachable, card not found, skill not loaded), log a one-line warning and continue. Never block the parent workflow.
 
 ### Branch creation → In Progress (the key transition)
 
@@ -109,3 +120,4 @@ If no match is found, ask the user: "I couldn't find a Glacier card for this wor
 - Respect WIP limits — if the target column is at limit, warn instead of moving.
 - Keep output concise: card ID, action taken, column. No verbose summaries.
 - Never regress a card (e.g. don't move from In Review back to In Progress).
+- **Never block the parent workflow.** If anything fails, warn and continue.
