@@ -44,6 +44,7 @@ When asked to implement a feature, fix, or issue, follow this sequence:
    State the classification out loud before proceeding.
 
 1. **Branch**: Create a feature branch from main (never commit to main directly)
+1b. **Board sync**: Auto-invoke `glacier-sync` to move the linked Glacier card to **In Progress**. This marks the start of cycle time measurement. If no `.glacier.json` exists in the repo, skip silently.
 2. **Explore**: Delegate to the `explorer` agent to find relevant files and patterns
 3. **Plan**: Present a brief implementation plan (max 7 steps). Wait for my approval
 4. **Test first** _(logic only)_: Invoke the `test-gen` skill to write failing tests that define the expected behavior
@@ -111,4 +112,4 @@ If the prompt includes `[skip-tests]`, bypass steps 4–7 without asking.
 - test-gen — Skill, auto-invoked at workflow step 4
 - bbs-brand — Skill, auto-invoked for copy and client-facing content
 - deploy-checklist — Skill, auto-invoked before deployments
-- glacier-sync — Skill, auto-invoked after PR merge, branch creation, or board sync requests (requires `.glacier.json` in repo root)
+- glacier-sync — Skill, auto-invoked at step 1b (branch creation → In Progress), after PR open (→ In Review), after PR merge (→ Done), or on manual board sync requests. Requires `.glacier.json` in repo root.
