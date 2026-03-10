@@ -6,6 +6,12 @@
 - UI Components: shadcn/ui (default for all new web projects)
 - Common Tools: PostgreSQL + pgvector, Drizzle ORM, Stripe, Supabase Auth
 
+## Repository Context
+- GitHub org: `blackbearhq` — ALWAYS use this as the default owner for all repos
+- When running `gh` CLI commands, always use `--repo blackbearhq/<repo-name>`
+- Never fall back to the authenticated user's personal account for repo resolution
+- Studio repos: glacier, claude-config, skillsframe, plato, blackbear-site
+
 ## Workflow Rules
 - ALWAYS run `npm run check` before considering a task complete
 - ALWAYS run tests after modifying business logic
