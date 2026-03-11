@@ -24,7 +24,7 @@ This configuration includes:
   - `deploy-checklist` - Pre-deployment verification for Vercel/Next.js
   - `code-review` - Code quality and security reviews (auto-invoked at review step)
   - `test-gen` - TDD test generation, write failing tests first (auto-invoked at test step)
-  - `glacier-sync` - Sync repo activity with Glacier board via MCP (auto-invoked on PR merge, branch creation; opt-in via `.glacier.json`)
+  - `glacier-sync` - Sync repo activity with Glacier board via MCP (auto-invoked on branch creation, PR open, PR merge; opt-in via env vars)
 - **agents/** - Custom agent definitions for specialized tasks
   - `explorer` - Fast codebase exploration
   - `pr-prep` - PR description generation
@@ -40,31 +40,45 @@ All agents and commands follow Black Bear Studio's engineering practices.
 
 ## Glacier Sync (opt-in)
 
-The `glacier-sync` skill bridges GitHub workflow to [Glacier](https://getglacier.ai) boards via MCP. It only activates in projects that have a `.glacier.json` config file in the repo root.
+The `glacier-sync` skill bridges GitHub workflow to [Glacier](https://getglacier.ai) boards via MCP. It only activates in projects where `GLACIER_ENABLED=true` and `GLACIER_PROJECT_ID` are set in the environment.
 
 ### Enable for a project
 
-Add `.glacier.json` to your repo root:
+Add two variables to your `.env.local` (already gitignored in Next.js projects):
 
-```json
-{
-  "enabled": true,
-  "workspace": "blackbear",
-  "project": "glacier",
-  "mcp_url": "https://www.getglacier.ai/api/mcp"
-}
 ```
+GLACIER_ENABLED=true
+GLACIER_PROJECT_ID=<uuid from Project Settings>
+```
+
+To find your project ID: open Glacier → Project Settings → copy the project ID.
+
+The MCP server URL (`https://www.getglacier.ai/api/mcp`) is hardcoded in the skill — no configuration needed.
+
+Column IDs are resolved dynamically at runtime via `list_columns`, so the board can be restructured without updating any config.
 
 ### What it does
 
-- **Card status sync** — Moves Glacier cards when PRs are merged (matches by GitHub link, branch name, or PR title)
-- **TODO scanning** — Creates cards from `// TODO(glacier):` comments in code
-- **Board status** — Reports cards per column, WIP limit status, blockers
+**Auto-triggers during `/implement` workflow:**
+
+| Trigger | Workflow step | Glacier transition |
+|---------|---------------|-------------------|
+| Branch created | Step 1b | Ready / Backlog → **In Progress** |
+| PR opened | Step 9b | In Progress → **In Review** |
+| PR merged | Post-merge | In Review → **Done** |
+
+Card matching uses GitHub issue links first, then issue number in branch name, then title fuzzy match (with confirmation).
+
+**Manual capabilities via `/glacier-sync`:**
+
+- **Board status** — Cards per column, WIP limit status, blockers
+- **PR sync** — Match recent merged PRs to cards, move to Done
+- **TODO scanning** — Creates cards from `// TODO(glacier):` comments in branch diff (`git diff --name-only main...HEAD`)
 - **Issue linking** — Links GitHub issues to Glacier cards after creation
 
 ### Disable for a project
 
-Remove `.glacier.json` or set `"enabled": false`. The skill skips silently when no config is found.
+Remove the env vars or set `GLACIER_ENABLED=false`. The skill skips silently when env vars are missing — it never blocks the workflow.
 
 ## Installation
 
