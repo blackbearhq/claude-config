@@ -44,7 +44,7 @@ When asked to implement a feature, fix, or issue, follow this sequence:
    State the classification out loud before proceeding.
 
 1. **Branch**: Create a feature branch from main (never commit to main directly)
-1b. **Board sync** _(optional)_: If `glacier-sync` skill is enabled and `.glacier.json` exists in the repo, move the linked Glacier card to **In Progress** (marks start of cycle time). If glacier-sync is not available or `.glacier.json` is absent, skip silently and continue — never fail the workflow.
+1b. **Board sync** _(optional)_: If `glacier-sync` skill is enabled and `GLACIER_ENABLED=true` + `GLACIER_PROJECT_ID` are set in the environment, move the linked Glacier card to **In Progress** (marks start of cycle time). If glacier-sync is not available or env vars are missing, skip silently and continue — never fail the workflow.
 2. **Explore**: Delegate to the `explorer` agent to find relevant files and patterns
 3. **Plan**: Present a brief implementation plan (max 7 steps). Wait for my approval
 4. **Test first** _(logic only)_: Invoke the `test-gen` skill to write failing tests that define the expected behavior
@@ -53,10 +53,11 @@ When asked to implement a feature, fix, or issue, follow this sequence:
 7. **Verify green** _(logic only)_: Run `npm run test:run -- --testPathPattern=<changed-file>`. Confirm they PASS. Never run the full test suite during TDD cycles — full suite runs at PR prep stage only.
 8. **Refactor**: Clean up while keeping tests green
 9. **Review**: Invoke the `code-review` skill to review all changes
+9b. **Board sync** _(optional)_: If glacier-sync is active and a PR was opened via `gh pr create`, move the linked card to **In Review**. Skip silently if not available.
 10. **Report**: Summarize what was done, flag any reviewer concerns, ask if I want to commit
 
 Red → Green → Refactor. Steps 4–7 are gated on `logic` classification only.
-Step 1b is gated on glacier-sync availability — it is always optional.
+Steps 1b and 9b are gated on glacier-sync availability — they are always optional.
 If the reviewer flags 🔴 Critical issues, fix them before reporting.
 
 ### Skip Protocol
@@ -113,4 +114,4 @@ If the prompt includes `[skip-tests]`, bypass steps 4–7 without asking.
 - test-gen — Skill, auto-invoked at workflow step 4
 - bbs-brand — Skill, auto-invoked for copy and client-facing content
 - deploy-checklist — Skill, auto-invoked before deployments
-- glacier-sync — **Optional** skill, auto-invoked at step 1b (branch creation → In Progress), after PR open (→ In Review), after PR merge (→ Done), or on manual board sync requests. Requires `.glacier.json` in repo root. If not enabled or config absent, workflow continues without it.
+- glacier-sync — **Optional** skill, auto-invoked at step 1b (branch creation → In Progress), step 9b (PR open → In Review), after PR merge (→ Done), or on manual board sync requests. Requires `GLACIER_ENABLED=true` and `GLACIER_PROJECT_ID` in `.env.local`. If not enabled or env vars absent, workflow continues without it.
