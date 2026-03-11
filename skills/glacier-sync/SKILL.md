@@ -4,7 +4,7 @@ description: >
   Optional skill. Syncs work tracking between the current repo and Glacier board.
   Auto-invoke after branch creation (step 1 of implement workflow), PR open, PR merge,
   or when the user mentions board sync, card status, or Glacier tracking.
-  Only activates when GLACIER_ENABLED=true and GLACIER_PROJECT_ID are set in the environment.
+  Only activates when GLACIER_ENABLED=true, GLACIER_WORKSPACE_ID, and GLACIER_PROJECT_ID are set in the environment.
   If the skill is not enabled or env vars are absent, skip silently — never fail the workflow.
 ---
 # Glacier Sync
@@ -15,10 +15,11 @@ Keep the Glacier board in sync with development activity. This skill bridges Git
 
 ## Configuration
 
-Two environment variables in `.env.local` (already gitignored in Next.js projects):
+Three environment variables in `.env.local` (already gitignored in Next.js projects):
 
 ```
 GLACIER_ENABLED=true
+GLACIER_WORKSPACE_ID=<uuid from Project Settings>
 GLACIER_PROJECT_ID=<uuid from Project Settings>
 ```
 
@@ -26,15 +27,25 @@ The MCP server URL is hardcoded: `https://www.getglacier.ai/api/mcp`
 
 Column IDs are resolved dynamically at runtime via `Glacier:list_columns` using column name matching. This keeps config minimal and avoids stale IDs if the board is restructured.
 
-To get your project ID: open Glacier → Project Settings → copy the project ID.
+To get your IDs: open Glacier → Project Settings → copy the workspace ID and project ID.
 
 ## Activation
 
-This skill only activates when **both** conditions are met:
+This skill only activates when **all** conditions are met:
 1. The `glacier-sync` skill is enabled in the current Claude Code session
-2. Environment variable `GLACIER_ENABLED` is `true` and `GLACIER_PROJECT_ID` is set
+2. `GLACIER_ENABLED` is `true`
+3. `GLACIER_WORKSPACE_ID` is set
+4. `GLACIER_PROJECT_ID` is set
 
-If either condition is not met, skip silently — do not prompt the user to configure anything. Do not error. Do not block the workflow.
+If any condition is not met, skip silently — do not prompt the user to configure anything. Do not error. Do not block the workflow.
+
+## MCP call pattern
+
+**Every** Glacier MCP tool call must include `workspace_id` from the `GLACIER_WORKSPACE_ID` env var. This is required because OAuth tokens are user-scoped (not workspace-scoped). Omitting it will cause the call to fail.
+
+Example: `Glacier:list_columns(project_id: $GLACIER_PROJECT_ID, workspace_id: $GLACIER_WORKSPACE_ID)`
+
+Do NOT call `Glacier:list_workspaces` to discover the workspace ID — it is always provided via env var.
 
 ## Auto-invoke triggers
 
@@ -55,7 +66,7 @@ This is the most important auto-trigger for accurate cycle time tracking. When t
 
 1. Parse the issue reference from the user's request (e.g. "implement #42")
 2. Find the matching Glacier card (see Card matching strategy below)
-3. Resolve column IDs: call `Glacier:list_columns` with the project ID, match by column name
+3. Resolve column IDs: call `Glacier:list_columns` with `project_id` and `workspace_id` from env, match by column name
 4. Check the card's current column:
    - If in **Backlog** or **Ready** → move to **In Progress**
    - If already in **In Progress** or later → do nothing (don't regress)
@@ -85,6 +96,7 @@ After PR merge is confirmed:
 - When a PR is merged, check if any linked Glacier cards should move to Done
 - Match cards by GitHub issue link on the card (see matching strategy)
 - Use `Glacier:list_cards` → find matching card → `Glacier:update_card` to move column
+- Always pass `workspace_id` from env to every MCP call
 
 ### 2. Card creation from TODOs
 - When the user asks to "sync TODOs" or "create cards from issues":
@@ -106,7 +118,7 @@ After PR merge is confirmed:
 
 Columns are resolved by name at runtime, not stored in config:
 
-1. Call `Glacier:list_columns` with `project_id` from env
+1. Call `Glacier:list_columns` with `project_id` and `workspace_id` from env
 2. Match column names case-insensitively: "Backlog", "Ready", "In Progress", "In Review", "Done"
 3. Cache the mapping for the duration of the session (don't call `list_columns` on every trigger)
 
@@ -133,6 +145,8 @@ If no match is found, ask the user: "I couldn't find a Glacier card for this wor
 
 ## MCP tools used
 
+All tools require `workspace_id` parameter from `GLACIER_WORKSPACE_ID` env var.
+
 - `Glacier:list_projects` — verify project exists (fallback/validation only)
 - `Glacier:list_columns` — get column IDs and WIP status by name
 - `Glacier:list_cards` — find cards by project or column
@@ -144,6 +158,7 @@ If no match is found, ask the user: "I couldn't find a Glacier card for this wor
 
 ## Rules
 
+- **Always pass `workspace_id`** from env to every Glacier MCP call. Never omit it.
 - Never move a card without confirming the match is correct. If ambiguous, ask the user.
 - Never create duplicate cards — check existing cards by title before creating.
 - Always report what was synced: card title, action taken, column.

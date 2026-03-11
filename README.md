@@ -40,18 +40,19 @@ All agents and commands follow Black Bear Studio's engineering practices.
 
 ## Glacier Sync (opt-in)
 
-The `glacier-sync` skill bridges GitHub workflow to [Glacier](https://getglacier.ai) boards via MCP. It only activates in projects where `GLACIER_ENABLED=true` and `GLACIER_PROJECT_ID` are set in the environment.
+The `glacier-sync` skill bridges GitHub workflow to [Glacier](https://getglacier.ai) boards via MCP. It only activates in projects where `GLACIER_ENABLED=true`, `GLACIER_WORKSPACE_ID`, and `GLACIER_PROJECT_ID` are set in the environment.
 
 ### Enable for a project
 
-Add two variables to your `.env.local` (already gitignored in Next.js projects):
+Add three variables to your `.env.local` (already gitignored in Next.js projects):
 
 ```
 GLACIER_ENABLED=true
+GLACIER_WORKSPACE_ID=<uuid from Project Settings>
 GLACIER_PROJECT_ID=<uuid from Project Settings>
 ```
 
-To find your project ID: open Glacier → Project Settings → copy the project ID.
+To find your IDs: open Glacier → Project Settings → copy the workspace ID and project ID.
 
 The MCP server URL (`https://www.getglacier.ai/api/mcp`) is hardcoded in the skill — no configuration needed.
 

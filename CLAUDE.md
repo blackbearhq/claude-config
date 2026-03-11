@@ -44,7 +44,7 @@ When asked to implement a feature, fix, or issue, follow this sequence:
    State the classification out loud before proceeding.
 
 1. **Branch**: Create a feature branch from main (never commit to main directly)
-1b. **Board sync** _(optional)_: If `glacier-sync` skill is enabled and `GLACIER_ENABLED=true` + `GLACIER_PROJECT_ID` are set in the environment, move the linked Glacier card to **In Progress** (marks start of cycle time). If glacier-sync is not available or env vars are missing, skip silently and continue — never fail the workflow.
+1b. **Board sync** _(optional)_: If `glacier-sync` skill is enabled and `GLACIER_ENABLED=true` + `GLACIER_WORKSPACE_ID` + `GLACIER_PROJECT_ID` are set in the environment, move the linked Glacier card to **In Progress** (marks start of cycle time). Always pass `workspace_id` to Glacier MCP calls. If glacier-sync is not available or env vars are missing, skip silently and continue — never fail the workflow.
 2. **Explore**: Delegate to the `explorer` agent to find relevant files and patterns
 3. **Plan**: Present a brief implementation plan (max 7 steps). Wait for my approval
 4. **Test first** _(logic only)_: Invoke the `test-gen` skill to write failing tests that define the expected behavior
@@ -114,4 +114,4 @@ If the prompt includes `[skip-tests]`, bypass steps 4–7 without asking.
 - test-gen — Skill, auto-invoked at workflow step 4
 - bbs-brand — Skill, auto-invoked for copy and client-facing content
 - deploy-checklist — Skill, auto-invoked before deployments
-- glacier-sync — **Optional** skill, auto-invoked at step 1b (branch creation → In Progress), step 9b (PR open → In Review), after PR merge (→ Done), or on manual board sync requests. Requires `GLACIER_ENABLED=true` and `GLACIER_PROJECT_ID` in `.env.local`. If not enabled or env vars absent, workflow continues without it.
+- glacier-sync — **Optional** skill, auto-invoked at step 1b (branch creation → In Progress), step 9b (PR open → In Review), after PR merge (→ Done), or on manual board sync requests. Requires `GLACIER_ENABLED=true`, `GLACIER_WORKSPACE_ID`, and `GLACIER_PROJECT_ID` in `.env.local`. If not enabled or env vars absent, workflow continues without it.
