@@ -4,7 +4,10 @@
 - Builder: BlackBear Studio (blackbear.so)
 - Core Stack: TypeScript, Next.js, React, Tailwind, Vercel
 - UI Components: shadcn/ui (default for all new web projects)
-- Common Tools: PostgreSQL + pgvector, Drizzle ORM, Stripe, Supabase Auth
+- **Preferred stack (new projects):** Neon (Postgres), Clerk (auth), Drizzle ORM, Stripe
+- **Also in use (existing projects):** Supabase (Postgres + Auth), pgvector
+- When starting a new project, default to the preferred stack unless there's a specific reason not to
+- When working on an existing project, follow the conventions already established in that repo
 
 ## Repository Context
 - GitHub org: `blackbearhq` — ALWAYS use this as the default owner for all repos
