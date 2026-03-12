@@ -26,6 +26,46 @@
 - Git commits must always use the human developer's identity only
 - PR descriptions may reference AI assistance but never attribute authorship
 
+## Database Safety Rules
+
+Schema changes can break other developers, running services, and production users. These rules apply to **any** relational database (PostgreSQL, MySQL, SQLite, etc.) and **any** hosting provider (Supabase, Neon, PlanetScale, Railway, local, etc.).
+
+### Core Principle
+NEVER alter a shared or production database schema without explicit approval. When in doubt, **generate a migration file** — don't push directly.
+
+### Before Any Schema Change
+1. **Identify the target.** Check which `DATABASE_URL` (or equivalent) is active in `.env.local`. Ask: "Is this a local DB, a shared dev DB, or production?"
+2. **If shared or production → STOP.** Do not run schema-altering commands. Generate a migration file instead and present it for review.
+3. **If local → proceed.** Direct push is acceptable on a developer's own local database.
+
+### Dangerous Commands (require explicit approval)
+These commands alter the database schema directly. NEVER run them against a shared or production database without asking first:
+
+- `npx drizzle-kit push` / `npm run db:push` (Drizzle)
+- `npx prisma db push` / `npx prisma migrate deploy` (Prisma)
+- Raw SQL: `ALTER TABLE`, `DROP TABLE`, `CREATE TYPE`, `ALTER TYPE`, `DROP COLUMN`, `RENAME`
+- Any ORM CLI command that syncs schema to a live database
+
+### Safe Commands
+- `npx drizzle-kit generate` — generates migration SQL files locally
+- `npx prisma migrate dev --create-only` — generates migration without applying
+- `npx drizzle-kit studio` / `npx prisma studio` — read-only DB viewers
+- `npm run check` — type checking only
+
+### Schema Change Workflow
+1. Edit the schema file (e.g., `db/schema.ts`, `prisma/schema.prisma`)
+2. Generate a migration file (never push directly)
+3. Commit the migration file to the branch
+4. Migration is reviewed in the PR
+5. Applied to production only after merge and explicit approval
+6. **Breaking changes** (enum changes, column renames, type changes) must be communicated to all developers before applying
+
+### Multi-Developer Projects
+When a database is shared between developers:
+- Prefer local database instances for development (Docker, Supabase CLI `supabase start`, local Postgres)
+- If using a shared cloud DB, coordinate schema changes — never push unannounced
+- Enum and type changes are especially dangerous: they break instantly for anyone running old code
+
 ## UI Component Workflow (shadcn/ui)
 - Use shadcn/ui as the default component library for all web projects
 - Initialize with `npx shadcn@latest init` when setting up new projects
