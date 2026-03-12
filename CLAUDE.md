@@ -80,6 +80,11 @@ When a database is shared between developers:
 ## Workflow: Implementing Issues (TDD)
 When asked to implement a feature, fix, or issue, follow this sequence:
 
+0a. **Parse entry mode**: The `/implement` command supports three entry paths — see `commands/implement.md` for full details:
+   - `/implement card <card_id>` — starts from a Glacier card, pulls linked GitHub issue if available
+   - `/implement issue <issue_number>` — starts from a GitHub issue, attempts to find linked Glacier card
+   - `/implement <custom prompt>` — free-form description, no automatic lookups
+
 0. **Classify**: Identify the issue type before doing anything else:
    - `logic` — business logic, API, DB, auth, data transformation → full TDD required
    - `ui` — components, layout, styling, copy → skip steps 4–7, use visual review instead
@@ -87,7 +92,7 @@ When asked to implement a feature, fix, or issue, follow this sequence:
    State the classification out loud before proceeding.
 
 1. **Branch**: Create a feature branch from main (never commit to main directly)
-1b. **Board sync** _(optional)_: If `glacier-sync` skill is enabled and `GLACIER_ENABLED=true` + `GLACIER_WORKSPACE_ID` + `GLACIER_PROJECT_ID` are set in the environment, move the linked Glacier card to **In Progress** (marks start of cycle time). Always pass `workspace_id` to Glacier MCP calls. If glacier-sync is not available or env vars are missing, skip silently and continue — never fail the workflow.
+1b. **Board sync** _(optional)_: If `glacier-sync` skill is enabled and `GLACIER_ENABLED=true` + `GLACIER_WORKSPACE_ID` + `GLACIER_PROJECT_ID` are set in the environment, move the linked Glacier card to **In Progress** (marks start of cycle time). Uses card_id resolved in step 0a if available. Always pass `workspace_id` to Glacier MCP calls. If glacier-sync is not available or env vars are missing, skip silently and continue — never fail the workflow.
 2. **Explore**: Delegate to the `explorer` agent to find relevant files and patterns
 3. **Plan**: Present a brief implementation plan (max 7 steps). Wait for my approval
 4. **Test first** _(logic only)_: Invoke the `test-gen` skill to write failing tests that define the expected behavior
@@ -96,7 +101,7 @@ When asked to implement a feature, fix, or issue, follow this sequence:
 7. **Verify green** _(logic only)_: Run `npm run test:run -- --testPathPattern=<changed-file>`. Confirm they PASS. Never run the full test suite during TDD cycles — full suite runs at PR prep stage only.
 8. **Refactor**: Clean up while keeping tests green
 9. **Review**: Invoke the `code-review` skill to review all changes
-9b. **Board sync** _(optional)_: If glacier-sync is active and a PR was opened via `gh pr create`, move the linked card to **In Review**. Skip silently if not available.
+9b. **Board sync** _(optional)_: If glacier-sync is active and a PR was opened via `gh pr create`, move the linked card to **In Review**. Uses card_id resolved in step 0a if available. Skip silently if not available.
 10. **Report**: Summarize what was done, flag any reviewer concerns, ask if I want to commit
 
 Red → Green → Refactor. Steps 4–7 are gated on `logic` classification only.
@@ -147,7 +152,7 @@ If the prompt includes `[skip-tests]`, bypass steps 4–7 without asking.
 - If unsure, ask — don't guess
 
 ## Available Skills
-- /implement — Main workflow entry point (manual)
+- `/implement` — Main workflow entry point. Supports three modes: `/implement card <card_id>`, `/implement issue <issue_number>`, `/implement <custom prompt>`. Card mode pulls Glacier card details + linked GitHub issue. Issue mode pulls GitHub issue + attempts Glacier card match. Custom mode uses free-form text. (manual)
 - /pr-prep — PR description and changelist (manual)
 - /skip-tests — Bypass test steps for ui/config issues (manual)
 - /cost-check — Token usage and cost analysis (manual)
