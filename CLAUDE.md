@@ -9,6 +9,11 @@
 - When starting a new project, default to the preferred stack unless there's a specific reason not to
 - When working on an existing project, follow the conventions already established in that repo
 
+## Products
+- **SkillsFrame** — AI-powered CV tailoring for senior professionals
+- **Plato** — 3D browser-based training platform for managers
+- **Glacier** — Flow-based workspace combining Kanban, docs, and MCP-first design for AI-native teams
+
 ## Repository Context
 - GitHub org: `blackbearhq` — ALWAYS use this as the default owner for all repos
 - When running `gh` CLI commands, always use `--repo blackbearhq/<repo-name>`
@@ -160,6 +165,5 @@ If the prompt includes `[skip-tests]`, bypass steps 4–7 without asking.
 - /glacier-sync — Sync repo activity with Glacier board (manual)
 - code-review — Skill, auto-invoked at workflow step 9
 - test-gen — Skill, auto-invoked at workflow step 4
-- bbs-brand — Skill, auto-invoked for copy and client-facing content
 - deploy-checklist — Skill, auto-invoked before deployments
 - glacier-sync — **Optional** skill, auto-invoked at step 1b (branch creation → In Progress), step 9b (PR open → In Review), after PR merge (→ Done), or on manual board sync requests. Requires `GLACIER_ENABLED=true`, `GLACIER_WORKSPACE_ID`, and `GLACIER_PROJECT_ID` in `.env.local`. If not enabled or env vars absent, workflow continues without it.
