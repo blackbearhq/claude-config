@@ -15,7 +15,7 @@ description: Black Bear Studio brand guidelines. Use when creating copy, documen
 
 ## Visual
 - Fonts: Syne (headings), DM Sans (body)
-- Colors: Refer to brand-guidelines.md in Notion
+- Colors: Refer to brand guidelines in Glacier
 - Logo: Separated format "Black Bear Studio" (not merged)
 
 ## Don'ts
