@@ -9,11 +9,6 @@
 - When starting a new project, default to the preferred stack unless there's a specific reason not to
 - When working on an existing project, follow the conventions already established in that repo
 
-## Products
-- **SkillsFrame** — AI-powered CV tailoring for senior professionals
-- **Plato** — 3D browser-based training platform for managers
-- **Glacier** — Flow-based workspace combining Kanban, docs, and MCP-first design for AI-native teams
-
 ## Repository Context
 - GitHub org: `blackbearhq` — ALWAYS use this as the default owner for all repos
 - When running `gh` CLI commands, always use `--repo blackbearhq/<repo-name>`
