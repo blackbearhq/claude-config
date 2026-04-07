@@ -128,6 +128,7 @@ If the prompt includes `[skip-tests]`, bypass steps 4–7 without asking.
 - Always use `git diff --stat` for overview of changes
 - Use `git diff --stat --cached` for staged changes
 - If you need actual diff content, use `git diff -- <specific-file>` for targeted files only
+- ALWAYS use `git mv` instead of `mv` when moving tracked files — preserves commit history
 
 ## Cost Discipline
 - Default to Sonnet for implementation work
