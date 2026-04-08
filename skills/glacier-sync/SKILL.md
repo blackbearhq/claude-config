@@ -1,11 +1,6 @@
 ---
 name: glacier-sync
-description: >
-  Optional skill. Syncs work tracking between the current repo and Glacier board.
-  Auto-invoke after branch creation (step 1 of implement workflow), PR open, PR merge,
-  or when the user mentions board sync, card status, or Glacier tracking.
-  Only activates when GLACIER_ENABLED=true, GLACIER_WORKSPACE_ID, and GLACIER_PROJECT_ID are set in the environment.
-  If the skill is not enabled or env vars are absent, skip silently — never fail the workflow.
+description: "Optional skill. Moves Glacier board cards between columns (Backlog → In Progress → In Review → Done) based on Git events, creates cards from TODO comments, and reports board status. Auto-invoke after branch creation, PR open, or PR merge, or when the user mentions board sync, card status, or Glacier tracking. Only activates when GLACIER_ENABLED=true, GLACIER_WORKSPACE_ID, and GLACIER_PROJECT_ID are set. Skips silently if not enabled."
 ---
 # Glacier Sync
 
@@ -41,11 +36,9 @@ If any condition is not met, skip silently — do not prompt the user to configu
 
 ## MCP call pattern
 
-**Every** Glacier MCP tool call must include `workspace_id` from the `GLACIER_WORKSPACE_ID` env var. This is required because OAuth tokens are user-scoped (not workspace-scoped). Omitting it will cause the call to fail.
+**Every** Glacier MCP tool call must include `workspace_id` from `GLACIER_WORKSPACE_ID` env var (OAuth tokens are user-scoped). Do NOT call `Glacier:list_workspaces` — the ID is always in the env var.
 
 Example: `Glacier:list_columns(project_id: $GLACIER_PROJECT_ID, workspace_id: $GLACIER_WORKSPACE_ID)`
-
-Do NOT call `Glacier:list_workspaces` to discover the workspace ID — it is always provided via env var.
 
 ## Auto-invoke triggers
 
@@ -72,8 +65,6 @@ This is the most important auto-trigger for accurate cycle time tracking. When t
    - If already in **In Progress** or later → do nothing (don't regress)
 5. Check WIP limit on In Progress column before moving. If at limit, **warn the user** and ask whether to proceed
 6. Report: `Moved card "<title>" → In Progress (branch feat/issue-42 created)`
-
-**Why this matters:** Cycle time in Kanban is measured from when work enters the first active column to when it reaches Done. Moving the card at branch creation — not at spec approval, not at PR merge — gives accurate lead time data. The Ready column represents "approved and waiting to be pulled"; In Progress represents "someone is actively working on it."
 
 ### PR opened → In Review
 
@@ -145,20 +136,21 @@ If no match is found, ask the user: "I couldn't find a Glacier card for this wor
 
 ## MCP tools used
 
-All tools require `workspace_id` parameter from `GLACIER_WORKSPACE_ID` env var.
+All tools require `workspace_id` from `GLACIER_WORKSPACE_ID` (see MCP call pattern above).
 
-- `Glacier:list_projects` — verify project exists (fallback/validation only)
-- `Glacier:list_columns` — get column IDs and WIP status by name
-- `Glacier:list_cards` — find cards by project or column
-- `Glacier:get_card` — check card details and linked docs
-- `Glacier:get_card_github_status` — verify GitHub issue/PR links on a card
-- `Glacier:update_card` — move cards between columns
-- `Glacier:create_card` — create new cards from TODOs
-- `Glacier:link_card_to_github` — link cards to GitHub issues/PRs
+| Tool | Purpose |
+|------|---------|
+| `Glacier:list_projects` | Verify project exists (fallback only) |
+| `Glacier:list_columns` | Get column IDs and WIP status by name |
+| `Glacier:list_cards` | Find cards by project or column |
+| `Glacier:get_card` | Check card details and linked docs |
+| `Glacier:get_card_github_status` | Verify GitHub issue/PR links on a card |
+| `Glacier:update_card` | Move cards between columns |
+| `Glacier:create_card` | Create new cards from TODOs |
+| `Glacier:link_card_to_github` | Link cards to GitHub issues/PRs |
 
 ## Rules
 
-- **Always pass `workspace_id`** from env to every Glacier MCP call. Never omit it.
 - Never move a card without confirming the match is correct. If ambiguous, ask the user.
 - Never create duplicate cards — check existing cards by title before creating.
 - Always report what was synced: card title, action taken, column.
