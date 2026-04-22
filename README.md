@@ -36,7 +36,7 @@ When you install this configuration, Claude Code will automatically:
   - `/init` — Session initialization
   - `/cost-check` — Token usage, rate limits, optimizations
   - `/skip-tests` — Bypass tests for ui/config issues
-  - `/glacier-sync` — Manual Glacier operations
+  - `/glacier` — Manual Glacier operations (alias: `/glacier-sync` kept for back-compat)
 
 ## Glacier Sync (opt-in, hooks-based)
 
@@ -70,14 +70,16 @@ Card matching uses GitHub issue links first, then issue number in branch name, t
 
 PR open and PR merge happen outside Claude Code, so they're handled two ways:
 - `implement` agent explicitly calls the skill after `gh pr create` succeeds (→ In Review)
-- User runs `/glacier-sync` after merging (→ Done)
+- User runs `/glacier` after merging (→ Done)
 
-### Manual capabilities via `/glacier-sync`
+### Manual capabilities via `/glacier`
 
 - **Board status** — Cards per column, WIP limit status, blockers
 - **PR sync** — Match recent merged PRs to cards, move to Done
 - **TODO scanning** — Creates cards from `// TODO(glacier):` comments in branch diff
 - **Issue linking** — Links GitHub issues to Glacier cards
+
+`/glacier-sync` is kept as a deprecated alias that forwards to the same workflow.
 
 ### Disable for a project
 
