@@ -170,4 +170,4 @@ Claude Code now has per-session effort tuning — use it instead of manually swi
 - `/skip-tests` — Bypass test steps for ui/config issues
 - `/cost-check` — Token usage, rate limits, optimization suggestions
 - `/init` — Session initialisation
-- `/glacier-sync` — Manual Glacier operations (hooks handle automatic sync)
+- `/glacier` — Manual Glacier operations (hooks handle automatic sync). `/glacier-sync` is kept as a deprecated alias.
