@@ -2,6 +2,7 @@
 name: code-review
 description: Reviews code changes for quality, security, and best practices. Auto-invoke when implementation is complete and the workflow reaches the review step (step 9), or when changes are ready for pre-PR review.
 model: sonnet
+effort: medium
 tools: Read, Glob, Grep
 memory: user
 color: yellow

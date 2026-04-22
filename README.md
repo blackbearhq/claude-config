@@ -11,36 +11,36 @@ When you install this configuration, Claude Code will automatically:
 - Enforce branching rules (never commit to `main`)
 - Use conventional commits
 - Apply our code standards (TypeScript strict, React hooks, Drizzle ORM, etc.)
-- Optimize for cost (Sonnet for implementation, Haiku for exploration)
+- Tune effort per agent/skill for cost discipline (Claude Code 2.1.94+ effort levels)
 - Run quality checks before task completion
+- Auto-invoke safety skills (db-migration, secret-scan, stripe-integration) on relevant file changes
 
 ## What's Included
 
-This configuration includes:
+- **CLAUDE.md** — Main workflow rules, code standards, effort-level conventions
+- **skills/** — Auto-invoked skills
+  - `code-review` — Pre-PR quality review (auto at workflow step 9)
+  - `test-gen` — TDD failing-test generation (auto at workflow step 4, logic issues only)
+  - `db-migration` — Enforces DB safety rules on schema file changes
+  - `stripe-integration` — Webhook verification, idempotency, test vs live mode checks
+  - `secret-scan` — Pre-commit leak detection (Stripe keys, .env, tokens)
+  - `deploy-checklist` — Pre-deployment verification for Vercel/Next.js
+  - `glacier-sync` — Hook-based Glacier board sync (optional, env-gated)
+- **agents/** — Specialized agents with scoped effort and turn limits
+  - `architect` (Opus, xhigh) — System design and cross-cutting changes
+  - `explorer` (Haiku, low) — Fast codebase exploration
+  - `implement` (Sonnet, high) — Main TDD implementation agent
+  - `pr-prep` (Haiku, low) — PR description generation
+- **commands/** — Workflow slash commands
+  - `/implement` — Full TDD workflow (card/issue/free-form modes)
+  - `/init` — Session initialization
+  - `/cost-check` — Token usage, rate limits, optimizations
+  - `/skip-tests` — Bypass tests for ui/config issues
+  - `/glacier-sync` — Manual Glacier operations
 
-- **CLAUDE.md** - Main workflow rules and code standards
-- **skills/** - Custom Black Bear Studio skills (auto-invoked or via slash commands)
-  - `bbs-brand` - Brand guidelines for client-facing materials
-  - `deploy-checklist` - Pre-deployment verification for Vercel/Next.js
-  - `code-review` - Code quality and security reviews (auto-invoked at review step)
-  - `test-gen` - TDD test generation, write failing tests first (auto-invoked at test step)
-  - `glacier-sync` - Sync repo activity with Glacier board via MCP (auto-invoked on branch creation, PR open, PR merge; opt-in via env vars)
-- **agents/** - Custom agent definitions for specialized tasks
-  - `explorer` - Fast codebase exploration
-  - `pr-prep` - PR description generation
-  - `architect` - System design and architecture planning
-- **commands/** - Workflow slash commands
-  - `implement` - Full TDD implementation workflow
-  - `init` - Session initialization
-  - `cost-check` - Token usage monitoring
-  - `skip-tests` - Bypass test steps for ui/config issues
-  - `glacier-sync` - Sync current repo with Glacier board
+## Glacier Sync (opt-in, hooks-based)
 
-All agents and commands follow Black Bear Studio's engineering practices.
-
-## Glacier Sync (opt-in)
-
-The `glacier-sync` skill bridges GitHub workflow to [Glacier](https://getglacier.ai) boards via MCP. It only activates in projects where `GLACIER_ENABLED=true`, `GLACIER_WORKSPACE_ID`, and `GLACIER_PROJECT_ID` are set in the environment.
+The `glacier-sync` skill bridges GitHub workflow to [Glacier](https://getglacier.ai) boards via MCP — now via Claude Code hooks for reliability.
 
 ### Enable for a project
 
@@ -54,28 +54,30 @@ GLACIER_PROJECT_ID=<uuid from Project Settings>
 
 To find your IDs: open Glacier → Project Settings → copy the workspace ID and project ID.
 
-The MCP server URL (`https://www.getglacier.ai/api/mcp`) is hardcoded in the skill — no configuration needed.
+The MCP server URL (`https://www.getglacier.ai/api/mcp`) is hardcoded. Column IDs are resolved dynamically at runtime via `list_columns`, so the board can be restructured without config changes.
 
-Column IDs are resolved dynamically at runtime via `list_columns`, so the board can be restructured without updating any config.
+### Auto-triggers (via Claude Code hooks)
 
-### What it does
+| Hook | What fires it | Glacier transition |
+|------|---------------|-------------------|
+| `FileChanged` on `.git/HEAD` | Branch creation or switch | Ready / Backlog → **In Progress** |
+| `CwdChanged` | Working directory change | Refresh column cache |
+| `PostCompact` | Conversation compaction | Refresh column cache |
 
-**Auto-triggers during `/implement` workflow:**
+Card matching uses GitHub issue links first, then issue number in branch name, then title fuzzy match.
 
-| Trigger | Workflow step | Glacier transition |
-|---------|---------------|-------------------|
-| Branch created | Step 1b | Ready / Backlog → **In Progress** |
-| PR opened | Step 9b | In Progress → **In Review** |
-| PR merged | Post-merge | In Review → **Done** |
+### Not covered by local hooks
 
-Card matching uses GitHub issue links first, then issue number in branch name, then title fuzzy match (with confirmation).
+PR open and PR merge happen outside Claude Code, so they're handled two ways:
+- `implement` agent explicitly calls the skill after `gh pr create` succeeds (→ In Review)
+- User runs `/glacier-sync` after merging (→ Done)
 
-**Manual capabilities via `/glacier-sync`:**
+### Manual capabilities via `/glacier-sync`
 
 - **Board status** — Cards per column, WIP limit status, blockers
 - **PR sync** — Match recent merged PRs to cards, move to Done
-- **TODO scanning** — Creates cards from `// TODO(glacier):` comments in branch diff (`git diff --name-only main...HEAD`)
-- **Issue linking** — Links GitHub issues to Glacier cards after creation
+- **TODO scanning** — Creates cards from `// TODO(glacier):` comments in branch diff
+- **Issue linking** — Links GitHub issues to Glacier cards
 
 ### Disable for a project
 
@@ -91,21 +93,19 @@ Remove the env vars or set `GLACIER_ENABLED=false`. The skill skips silently whe
 
 1. **Backup your existing config (if any)**
    ```bash
-   # If you have an existing .claude directory
    mv ~/.claude ~/.claude.backup
    ```
 
 2. **Clone this repo to your home directory**
    ```bash
    git clone git@github.com:blackbearhq/claude-config.git ~/.claude
-   # Or use HTTPS:
+   # Or HTTPS:
    # git clone https://github.com/blackbearhq/claude-config.git ~/.claude
    ```
 
 3. **Verify installation**
    ```bash
    ls ~/.claude/CLAUDE.md
-   # Should show the main configuration file
    ```
 
 4. **Start Claude Code in any project**
@@ -114,11 +114,7 @@ Remove the env vars or set `GLACIER_ENABLED=false`. The skill skips silently whe
    claude
    ```
 
-   Claude will now use the Black Bear Studio configuration automatically.
-
 ## Updating the Configuration
-
-To get the latest team updates:
 
 ```bash
 cd ~/.claude
@@ -127,31 +123,17 @@ git pull origin main
 
 ## Contributing Updates
 
-If you want to propose changes to the shared configuration:
-
-1. Create a branch in this repo
-   ```bash
-   cd ~/.claude
-   git checkout -b feat/improve-workflow
-   ```
-
-2. Make your changes to `CLAUDE.md` or other config files
-
+1. Branch: `cd ~/.claude && git checkout -b feat/your-change`
+2. Edit `CLAUDE.md` or add/modify files under `agents/`, `skills/`, `commands/`
 3. Commit and push
-   ```bash
-   git add .
-   git commit -m "feat: add Go language support"
-   git push origin feat/improve-workflow
-   ```
-
-4. Open a PR and discuss with the team
+4. Open a PR for team review
 
 ## Configuration Files
 
-- `CLAUDE.md` - Main configuration with workflow rules and standards
-- `README.md` - This file
-- `.gitignore` - Excludes personal/machine-specific files
-- `plans/` - Personal plan files (not tracked in git)
+- `CLAUDE.md` — Main configuration with workflow rules and standards
+- `README.md` — This file
+- `.gitignore` — Excludes personal/machine-specific files
+- `plans/` — Personal plan files (not tracked in git)
 
 ---
 
@@ -192,7 +174,8 @@ Fast experimentation requires serious craft. We combine Agile mindset, eXtreme P
 ### Tech Stack
 
 **Core:** TypeScript, Next.js, React, Tailwind, Vercel
-**Common:** PostgreSQL + pgvector, Drizzle ORM, Stripe, Supabase Auth
+**Preferred (new projects):** Neon, Clerk, Drizzle ORM, Stripe
+**Also in use:** Supabase (Auth + Postgres), pgvector
 
 ### Workflow
 

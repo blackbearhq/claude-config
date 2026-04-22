@@ -1,13 +1,11 @@
 ---
-description: Check current session token usage and suggest optimizations.
+description: Check current session token usage, rate limit status, and suggest optimizations.
 ---
-Run /cost and analyze the output.
+Run /cost and /usage. Analyze the output.
 
-Report:
-1. Current session cost
-2. Model distribution (how much Opus vs Sonnet vs Haiku)
-3. Context window usage percentage
-4. If context > 60%, suggest /clear or compaction
-5. If Opus usage > 30% of tokens, suggest delegating more to Sonnet/Haiku
+Report in three lines max:
+1. **Cost + distribution**: Session cost and model split (Opus / Sonnet / Haiku %)
+2. **Context + rate limits**: Context window % used; 5-hour and weekly usage from /usage
+3. **One recommendation**: If context > 60% → suggest /clear. If Opus > 30% of tokens → suggest delegating exploration to Haiku via the explorer agent. If rate limit > 80% → suggest pausing or switching to a lower-effort model via /effort.
 
-Be concise. Three lines max.
+Be direct. No preamble.
