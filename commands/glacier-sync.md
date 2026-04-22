@@ -1,9 +1,11 @@
 ---
 name: glacier-sync
-description: Sync current repo activity with the Glacier board
+description: DEPRECATED — renamed to /glacier. This stub forwards for backward compatibility.
 ---
 
-Run the glacier-sync skill:
+This command has been renamed to `/glacier`. Please use `/glacier` going forward.
+
+Forwarding to the same workflow:
 
 1. Check environment: `GLACIER_ENABLED` must be `true`, `GLACIER_WORKSPACE_ID` and `GLACIER_PROJECT_ID` must be set. If not, tell the user to add them to `.env.local` and stop.
 2. Resolve column IDs via `Glacier:list_columns` using `project_id` and `workspace_id` from env.
