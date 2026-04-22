@@ -1,12 +1,6 @@
 ---
 name: db-migration
-description: Enforces Black Bear Studio's database safety rules. Auto-invoke on any schema file change or when user mentions migration, schema change, ALTER TABLE, drizzle-kit, or prisma migrate.
-paths:
-  - "**/db/schema.ts"
-  - "**/db/schema/*.ts"
-  - "**/prisma/schema.prisma"
-  - "**/migrations/**"
-  - "**/drizzle/**"
+description: Enforces Black Bear Studio's database safety rules. Auto-invoke on any schema file change (schema.ts, schema.prisma, migrations folder) or when user mentions migration, schema change, ALTER TABLE, drizzle-kit, or prisma migrate.
 model: sonnet
 effort: high
 tools: Read, Bash, Glob, Grep
