@@ -1,9 +1,9 @@
 ---
-name: glacier-sync
-description: Sync current repo activity with the Glacier board
+name: glacier
+description: Manual Glacier board operations — board status, PR sync, TODO scanning, issue linking. Automatic board transitions (branch → In Progress) are handled by the glacier-sync skill via hooks.
 ---
 
-Run the glacier-sync skill:
+Run the glacier-sync skill for manual operations:
 
 1. Check environment: `GLACIER_ENABLED` must be `true`, `GLACIER_WORKSPACE_ID` and `GLACIER_PROJECT_ID` must be set. If not, tell the user to add them to `.env.local` and stop.
 2. Resolve column IDs via `Glacier:list_columns` using `project_id` and `workspace_id` from env.

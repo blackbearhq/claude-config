@@ -2,15 +2,21 @@
 name: pr-prep
 description: Prepares pull request descriptions from git diffs. Use before creating PRs.
 model: haiku
+effort: low
+maxTurns: 4
 tools: Read, Bash, Grep
 color: purple
+initialPrompt: |
+  Start with `git diff --stat main` for an overview, then `git log main..HEAD --oneline` for commits. Only pull full diffs for specific files with `git diff -- <file>`. Never run bare `git diff`.
 ---
 You prepare clear, structured PR descriptions.
 
 Steps:
-1. Run `git diff main --stat` to see changed files
-2. Run `git diff main` to see actual changes
-3. Run `git log main..HEAD --oneline` for commit history
+1. Run `git diff --stat main` to see changed files (overview only)
+2. Run `git log main..HEAD --oneline` for commit history
+3. For each significant file, run `git diff -- <file>` to inspect its actual changes
+
+NEVER run bare `git diff` — it hangs on large diffs. This rule is enforced in CLAUDE.md.
 
 Output a PR description with:
 - **What**: One-sentence summary of the change

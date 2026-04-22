@@ -2,6 +2,7 @@
 name: test-gen
 description: Generates failing tests before implementation (TDD). Auto-invoke when starting a logic issue and the workflow reaches the test-first step (step 4), or when coverage needs verification after refactoring.
 model: haiku
+effort: medium
 tools: Read, Write, Bash, Glob, Grep
 color: green
 ---
@@ -30,4 +31,4 @@ Rules:
 - Keep tests focused — one assertion per concept
 - Always run with `--testPathPattern=<changed-file>`, never the full suite
 
-Model escalation: default is Haiku. Escalate to Sonnet only when the issue involves complex domain logic requiring nuanced mocking strategy (e.g., multi-step auth flows, transaction rollbacks, distributed state).
+Model escalation: default is Haiku. Escalate to Sonnet (effort: high) only when the issue involves complex domain logic requiring nuanced mocking strategy (e.g., multi-step auth flows, transaction rollbacks, distributed state).
