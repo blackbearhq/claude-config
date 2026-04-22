@@ -1,12 +1,6 @@
 ---
 name: stripe-integration
-description: Enforces Stripe integration best practices for webhook handling, idempotency, signature verification, and test vs live mode safety. Auto-invoke on any file touching Stripe webhooks, subscriptions, payments, or checkout.
-paths:
-  - "**/webhooks/stripe/**"
-  - "**/api/stripe/**"
-  - "**/stripe/*.ts"
-  - "**/checkout/**"
-  - "**/subscriptions/**"
+description: Enforces Stripe integration best practices for webhook handling, idempotency, signature verification, and test vs live mode safety. Auto-invoke on any file touching Stripe webhooks, subscriptions, payments, checkout, or when user mentions Stripe, webhooks, webhook secret, idempotency, or subscription lifecycle.
 model: sonnet
 effort: medium
 tools: Read, Edit, Grep, Bash
