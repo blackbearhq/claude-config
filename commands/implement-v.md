@@ -4,7 +4,7 @@ description: Verbose/foreground variant of /implement. Runs the TDD workflow inl
 ---
 You are running the implement workflow **inline in the main thread**. Do NOT delegate this whole task to the `implement` agent — that's what the regular `/implement` command does, and its narration ends up in a sidechain task file invisible to the user.
 
-Verbose mode is implicitly ON for this command, regardless of the `[verbose]` flag or `VERBOSE` env var. Print every banner.
+This command always narrates. There is no flag to toggle — narration is the whole point. For silent execution use `/implement` instead.
 
 ## Why this command exists
 
@@ -20,7 +20,7 @@ Parse `$ARGUMENTS` exactly like the implement agent does:
 - `issue <number>` → GitHub issue mode
 - Anything else → free-form prompt mode
 
-If `[verbose]` appears in the arguments, strip it before parsing — verbose is already implicit.
+If `[verbose]` appears in the arguments (legacy from when the flag existed), treat it as a no-op — strip it silently before parsing the brief. Don't print a deprecation warning; the user will figure it out from the description string the next time they read it.
 If `[skip-tests]` appears, honour it the same way `/implement` does.
 
 If the env check fails for card mode, print a single concise line telling the user which vars are missing and stop. Do not paste shell snippets — they're in the README.
