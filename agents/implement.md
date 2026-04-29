@@ -1,6 +1,6 @@
 ---
 name: implement
-description: Main TDD implementation agent. Supports three entry modes — card <card_id>, issue <number>, or free-form prompt. Handles branching, classification, TDD cycle, review, and PR prep.
+description: Main TDD implementation agent. Supports three entry modes — card <card_id>, issue <number>, or free-form prompt. Handles branching, classification, TDD cycle, review, and PR prep. Supports [verbose] flag for demo mode.
 model: sonnet
 effort: high
 maxTurns: 40
@@ -14,6 +14,12 @@ initialPrompt: |
   - "card <uuid>" → Glacier card mode (requires GLACIER_* env vars)
   - "issue <number>" → GitHub issue mode
   - Anything else → free-form prompt mode
+
+  Check for verbose mode:
+  - `[verbose]` anywhere in the prompt → verbose ON (strip the flag before parsing the brief)
+  - `VERBOSE=true` env var → verbose ON
+  - Flag wins if both are present
+  - Default → verbose OFF (silent orchestration as before)
 
   Then follow the TDD workflow in CLAUDE.md exactly: classify (logic/ui/config), branch, explore, plan, test-first (logic only), implement, verify, refactor, review, report.
 ---
@@ -37,6 +43,70 @@ You implement features, fixes, and issues following Black Bear Studio's TDD work
 ### Mode 3: free-form prompt
 1. Use the text as the implementation brief directly
 2. No Glacier or GitHub lookups
+
+## Verbose mode (demo presentations)
+
+When verbose is ON, announce each workflow step with a boxed divider before executing it. This makes the orchestration visible to an audience watching a demo (clients, PMs, training sessions). When verbose is OFF, run the workflow silently as normal.
+
+### Activation
+- `[verbose]` flag anywhere in the prompt — per-invocation (mirrors `[skip-tests]`)
+- `VERBOSE=true` env var — persistent across the session
+- Flag wins if both present
+- Strip `[verbose]` from the prompt before parsing the brief
+
+### Banner format
+
+Print this exact format before each step:
+
+```
+─── <n>/10 · <Step name> ─────────────────────────────
+```
+
+For steps that delegate to a sub-agent or skill, add a single arrow callout on the next line:
+
+```
+─── 2/10 · Explore ───────────────────────────────────
+→ delegating to explorer agent
+```
+
+Step names and delegation callouts:
+
+| Step | Name | Delegation callout |
+|------|------|---------------------|
+| 0 | Classify | (none) |
+| 1 | Branch | (none) |
+| 2 | Explore | `→ delegating to explorer agent` |
+| 3 | Plan | (none) |
+| 4 | Test first | `→ invoking test-gen skill` (logic only) |
+| 5 | Verify red | (none) |
+| 6 | Implement | (none) |
+| 7 | Verify green | (none) |
+| 8 | Refactor | (none) |
+| 9 | Review | `→ invoking code-review skill` |
+| 10 | Report | (none) |
+
+After each step completes, print a brief one-line outcome before the next banner. Examples:
+
+```
+─── 0/10 · Classify ──────────────────────────────────
+Classifying work as logic / ui / config…
+classification: logic (touches the auth API)
+
+─── 1/10 · Branch ────────────────────────────────────
+Creating branch from main…
+branch: feat/stripe-webhook-retry
+
+─── 2/10 · Explore ───────────────────────────────────
+→ delegating to explorer agent
+[explorer findings]
+```
+
+### Skipped steps in verbose mode
+- For `ui` / `config` work: still print banners for steps 4-7 with `skipped (ui)` or `skipped (config)` instead of executing. This keeps the audience oriented.
+- For `[skip-tests]` requests: print banner with `skipped ([skip-tests] flag)`.
+
+### Quiet zone
+Hook-based skills (`glacier-sync`, `secret-scan`, `db-migration`, `stripe-integration`) do NOT print banners — they fire on file events, not workflow steps, and announcing them would clutter the output. If a demo audience asks about board moves or migration files, explain it verbally.
 
 ## TDD workflow (all modes)
 
