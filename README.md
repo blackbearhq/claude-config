@@ -29,7 +29,7 @@ When you install this configuration, Claude Code will automatically:
 - **agents/** — Specialized agents with scoped effort and turn limits
   - `architect` (Opus, xhigh) — System design and cross-cutting changes
   - `explorer` (Haiku, low) — Fast codebase exploration
-  - `implement` (Sonnet, high) — Main TDD implementation agent
+  - `implement` (Sonnet, high) — Main TDD implementation agent (supports `[verbose]` demo mode)
   - `pr-prep` (Haiku, low) — PR description generation
 - **commands/** — Workflow slash commands
   - `/implement` — Full TDD workflow (card/issue/free-form modes)
@@ -84,6 +84,67 @@ PR open and PR merge happen outside Claude Code, so they're handled two ways:
 ### Disable for a project
 
 Remove the env vars or set `GLACIER_ENABLED=false`. The skill skips silently when env vars are missing — it never blocks the workflow.
+
+## Demo Mode (verbose orchestration)
+
+The `implement` agent runs the full TDD cycle (explore → plan → test-gen → implement → review → PR) silently by default — fine for solo work, hard to explain in front of an audience.
+
+**Demo mode** turns on a CLI-runner-style narration: each workflow step gets a boxed banner with explicit delegation callouts, and Glacier card transitions are announced inline so the board move is visible alongside the terminal.
+
+### Enable
+
+Per-invocation:
+```
+/implement issue 42 [verbose]
+```
+
+Session-wide (better for live demos and workshops):
+```bash
+export VERBOSE=true
+/implement issue 42
+```
+
+The flag wins if both are set. Default behaviour is unchanged when neither is active.
+
+### What you'll see
+
+```
+─── 0/10 · Classify ──────────────────────────────────
+classification: logic (touches the auth API)
+
+─── 1/10 · Branch ────────────────────────────────────
+branch: feat/issue-42-stripe-webhook-retry
+↳ Glacier: "Stripe webhook retry logic" → In Progress (pending)
+↳ Glacier: "Stripe webhook retry logic" → In Progress ✓
+
+─── 2/10 · Explore ───────────────────────────────────
+→ delegating to explorer agent
+[explorer findings]
+
+─── 4/10 · Test first ────────────────────────────────
+→ invoking test-gen skill
+
+─── 9/10 · Review ────────────────────────────────────
+→ invoking code-review skill
+
+─── 10/10 · Report ───────────────────────────────────
+↳ Glacier: "Stripe webhook retry logic" → In Review ✓
+```
+
+The `(pending)` → `✓` two-line beat is intentional: audience hears the announcement, looks at the Glacier board, watches the card move, sees the confirmation.
+
+### Behaviour notes
+
+- **Glacier narration is opt-in twice** — needs both verbose mode AND a working Glacier setup (env vars + linked card). Missing either → silent skip, no error noise for the audience.
+- **Hook-based skills stay quiet** — `secret-scan`, `db-migration`, `stripe-integration` don't print banners. They fire on file events, not workflow steps.
+- **Skipped steps still announce** — `ui` and `config` work shows `skipped (ui)` for steps 4–7 instead of executing, which keeps the audience oriented.
+
+### Recommended demo setup
+
+1. Glacier board open in a browser tab visible to the audience (full-screen)
+2. Terminal in another window
+3. `export VERBOSE=true` once at the start
+4. Pick a small linked card and run `/implement card <id>` against it
 
 ## Installation
 
