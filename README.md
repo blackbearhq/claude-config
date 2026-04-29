@@ -143,8 +143,9 @@ The `(pending)` → `✓` two-line beat is intentional: audience hears the annou
 
 1. Glacier board open in a browser tab visible to the audience (full-screen)
 2. Terminal in another window
-3. `export VERBOSE=true` once at the start
-4. Pick a small linked card and run `/implement card <id>` against it
+3. Source `.env.local` into the shell so the agent's subprocesses inherit `GLACIER_*` and `VERBOSE`: `set -a; source .env.local; set +a` (Claude Code subprocesses don't auto-load `.env.local` — it's a Next.js convention, not a shell one)
+4. `export VERBOSE=true` if it isn't already in `.env.local`
+5. Pick a small linked card and run `/implement card <id>` against it
 
 ## Installation
 
