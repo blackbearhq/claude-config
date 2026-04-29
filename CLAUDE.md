@@ -9,6 +9,28 @@
 - When starting a new project, default to the preferred stack unless there's a specific reason not to
 - When working on an existing project, follow the conventions already established in that repo
 
+## Next.js Version Policy
+
+Framework versions move fast. This config does NOT pin a hard version — instead, it teaches how to think about versioning so generated code stays current without surprises.
+
+### New projects
+- Always scaffold with `npx create-next-app@latest` — pulls current stable
+- Do not assume a specific version from training data; if uncertain, run `npm show next version` to verify
+
+### Existing projects
+- Respect the version in that repo's `package.json` — never silently upgrade
+- Match patterns to the version in use (don't generate v16 patterns into a v15 codebase or vice versa)
+- Before any major version bump, run `npx @next/codemod@canary upgrade latest` and review the diff
+
+### Known breaking changes (v15 → v16)
+- `src/middleware.ts` → `src/proxy.ts` — `middleware` is deprecated, file renamed to `proxy`
+- Verify any custom `next.config.js` against the v16 migration guide before bumping
+- Async Request APIs (already breaking in v15): `await cookies()`, `await headers()`, `await params`
+
+### When unsure
+- Check the repo's `package.json` first
+- If it's a new project and the latest stable is unclear, ask before generating version-specific code
+
 ## Repository Context
 - GitHub org: `blackbearhq` — ALWAYS use this as the default owner for all repos
 - When running `gh` CLI commands, always use `--repo blackbearhq/<repo-name>`
