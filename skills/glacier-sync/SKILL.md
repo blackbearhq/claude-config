@@ -1,6 +1,6 @@
 ---
 name: glacier-sync
-description: Hooks-based Glacier board sync. Auto-fires on branch creation, PR open, and PR merge via Claude Code hooks. Only activates when GLACIER_ENABLED=true, GLACIER_WORKSPACE_ID, and GLACIER_PROJECT_ID are set. Skips silently if not configured.
+description: Hooks-based Glacier board sync. Auto-fires on branch creation, PR open, and PR merge via Claude Code hooks. Only activates when GLACIER_ENABLED=true, GLACIER_WORKSPACE_ID, and GLACIER_PROJECT_ID are set. Skips silently if not configured. Supports verbose mode for demo presentations.
 model: haiku
 effort: low
 tools: Bash, Read
@@ -54,7 +54,7 @@ Fires when branch is created or switched.
    - If card is in **Backlog** or **Ready** → move to **In Progress**
    - If already In Progress or later → do nothing (don't regress)
    - Check WIP limit before moving; warn if at limit
-4. Report: `Glacier: moved "<card title>" → In Progress`
+4. Report (see Output formatting below)
 5. If no issue number or no matching card → silent skip
 
 ### `CwdChanged`
@@ -69,6 +69,43 @@ Fires after conversation compaction.
 1. Re-resolve column IDs (cache may have been compacted out)
 2. No board action
 
+## Output formatting
+
+This skill detects whether the parent session is in verbose mode by checking:
+- `VERBOSE=true` in env, OR
+- a `.claude/verbose` flag file at the repo root (set by the implement agent when `[verbose]` is parsed)
+
+### Default (verbose OFF)
+Single compact line, only on actual moves:
+
+```
+Glacier: "Stripe webhook retry logic" → In Progress
+```
+
+No line when nothing moves (already in target column, no card matched, etc.).
+
+### Verbose ON (demo mode)
+Use the `↳ Glacier:` prefix to visually link the board event to the implement agent's step banner above it. Three states:
+
+```
+↳ Glacier: "Stripe webhook retry logic" → In Progress (pending)
+↳ Glacier: "Stripe webhook retry logic" → In Progress ✓
+↳ Glacier: move failed (continuing) — <one-line reason>
+```
+
+- `(pending)` is printed by the implement agent BEFORE the action that triggers the hook
+- `✓` is printed by this skill AFTER the move completes successfully
+- `move failed` is printed on error — never paste stack traces, just one-line context
+
+The two-line beat (pending → ✓) is the demo wow moment: audience sees the announcement, looks at the board, watches the card move, sees the confirmation. Don't collapse it into a single line.
+
+### When NOT to print in verbose mode
+- Card already in target column (no-op move) — skip silently, the implement agent won't have printed `(pending)` either
+- No card linked to the issue — skip silently
+- Glacier disabled — skip silently
+
+Do not print "skipped" lines for these cases. Silence is correct.
+
 ## Manual triggers (via `/glacier-sync` command)
 
 Still available for on-demand operations that hooks don't cover:
@@ -81,8 +118,8 @@ Still available for on-demand operations that hooks don't cover:
 
 `gh pr create` and PR merges happen outside Claude Code, so hooks can't catch them directly. Two options:
 
-1. **The `implement` agent calls this skill explicitly** after `gh pr create` succeeds → move card to **In Review**
-2. **User runs `/glacier-sync`** after merging → move card to **Done**
+1. **The `implement` agent calls this skill explicitly** after `gh pr create` succeeds → move card to **In Review**. The agent passes `verbose=true` if it's in verbose mode so the `↳ Glacier:` prefix is used.
+2. **User runs `/glacier-sync`** after merging → move card to **Done**. Verbose mode applies the same way if active.
 
 If the Glacier MCP ever exposes a webhook relay, this could also become fully automatic.
 
@@ -126,3 +163,4 @@ All require `workspace_id` from env:
 - Respect WIP limits — warn before moving into an at-limit column
 - Report concisely: card title + action + column. One line.
 - NEVER block the parent workflow. If anything fails, warn and continue.
+- In verbose mode: use the `↳ Glacier:` prefix for visual linkage with the implement agent's step banners. In default mode: use the `Glacier:` prefix as before.
