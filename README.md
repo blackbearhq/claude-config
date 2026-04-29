@@ -29,10 +29,11 @@ When you install this configuration, Claude Code will automatically:
 - **agents/** — Specialized agents with scoped effort and turn limits
   - `architect` (Opus, xhigh) — System design and cross-cutting changes
   - `explorer` (Haiku, low) — Fast codebase exploration
-  - `implement` (Sonnet, high) — Main TDD implementation agent (supports `[verbose]` demo mode)
+  - `implement` (Sonnet, high) — Main TDD implementation agent (silent; use `/implement-v` for narrated demo runs)
   - `pr-prep` (Haiku, low) — PR description generation
 - **commands/** — Workflow slash commands
-  - `/implement` — Full TDD workflow (card/issue/free-form modes)
+  - `/implement` — Full TDD workflow, silent (card/issue/free-form modes)
+  - `/implement-v` — Same workflow, narrated inline in the main terminal (for demos and live presentations)
   - `/init` — Session initialization
   - `/cost-check` — Token usage, rate limits, optimizations
   - `/skip-tests` — Bypass tests for ui/config issues
@@ -85,67 +86,73 @@ PR open and PR merge happen outside Claude Code, so they're handled two ways:
 
 Remove the env vars or set `GLACIER_ENABLED=false`. The skill skips silently when env vars are missing — it never blocks the workflow.
 
-## Demo Mode (verbose orchestration)
+## Demo Mode
 
 The `implement` agent runs the full TDD cycle (explore → plan → test-gen → implement → review → PR) silently by default — fine for solo work, hard to explain in front of an audience.
 
-**Demo mode** turns on a CLI-runner-style narration: each workflow step gets a boxed banner with explicit delegation callouts, and Glacier card transitions are announced inline so the board move is visible alongside the terminal.
+For demos, use `/implement-v` — it runs the same workflow inline in the main terminal with CLI-runner-style narration: each step gets a phased banner with a status suffix, Glacier card transitions are announced inline, and the run closes with a summary card.
 
-### Enable
+### Run a demo
 
-Per-invocation:
 ```
-/implement issue 42 [verbose]
-```
-
-Session-wide (better for live demos and workshops):
-```bash
-export VERBOSE=true
-/implement issue 42
+/implement-v card <id>
 ```
 
-The flag wins if both are set. Default behaviour is unchanged when neither is active.
+That's it — no flag, no env var. The command always narrates. There used to be a `[verbose]` flag and a `VERBOSE=true` env var on `/implement`; both have been removed. Two tools, two distinct uses, no overlap.
 
 ### What you'll see
 
 ```
-─── 0/10 · Classify ──────────────────────────────────
-classification: logic (touches the auth API)
+━━━ SETUP ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+─── 0/10 · Classify ──────────────────────────────────────  DONE
+   ui — pages + dialog component, Server Action for DB write
 
-─── 1/10 · Branch ────────────────────────────────────
-branch: feat/issue-42-stripe-webhook-retry
-↳ Glacier: "Stripe webhook retry logic" → In Progress (pending)
-↳ Glacier: "Stripe webhook retry logic" → In Progress ✓
+─── 1/10 · Branch ────────────────────────────────────────  DONE
+   branch: feat/crm-5-accounts-list
+   ↳ 🧊 Glacier: "Build accounts list and create flow" → In Progress ✓
 
-─── 2/10 · Explore ───────────────────────────────────
-→ delegating to explorer agent
-[explorer findings]
+━━━ DESIGN ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+─── 2/10 · Explore ───────────────────────────────────────  DONE
+   → delegating to explorer agent
 
-─── 4/10 · Test first ────────────────────────────────
-→ invoking test-gen skill
+─── 3/10 · Plan ──────────────────────────────────────────  DONE
+   5 files to add/modify, plan approved
 
-─── 9/10 · Review ────────────────────────────────────
-→ invoking code-review skill
+━━━ BUILD ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+─── 4-7/10 · Test cycle ──────────────────────────────────  SKIP
+   reason: ui classification — no failing tests required
 
-─── 10/10 · Report ───────────────────────────────────
-↳ Glacier: "Stripe webhook retry logic" → In Review ✓
+─── 6/10 · Implement ─────────────────────────────────────  DONE
+─── 8/10 · Refactor ──────────────────────────────────────  DONE
+
+━━━ SHIP ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+─── 9/10 · Review ────────────────────────────────────────  DONE
+─── 10/10 · Report ───────────────────────────────────────  DONE
+   ↳ 🧊 Glacier: "Build accounts list and create flow" → In Review ✓
+
+━━━ DONE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   Card     CRM-5 — Build accounts list and create flow
+   Branch   feat/crm-5-accounts-list (4 files, +127 -0)
+   PR       #18 — opened
+   Glacier  In Review
+   Time     6m 24s
 ```
 
-The `(pending)` → `✓` two-line beat is intentional: audience hears the announcement, looks at the Glacier board, watches the card move, sees the confirmation.
+The `(pending)` → `✓` two-line beat on Glacier transitions is intentional: audience hears the announcement, looks at the Glacier board, watches the card move, sees the confirmation. The 🧊 emoji is the only emoji in the output — it appears twice per run, on the two board transitions, and nowhere else.
 
 ### Behaviour notes
 
-- **Glacier narration is opt-in twice** — needs both verbose mode AND a working Glacier setup (env vars + linked card). Missing either → silent skip, no error noise for the audience.
+- **Glacier narration is opt-in twice** — needs both `/implement-v` AND a working Glacier setup (env vars + linked card). Missing either → silent skip, no error noise for the audience.
 - **Hook-based skills stay quiet** — `secret-scan`, `db-migration`, `stripe-integration` don't print banners. They fire on file events, not workflow steps.
-- **Skipped steps still announce** — `ui` and `config` work shows `skipped (ui)` for steps 4–7 instead of executing, which keeps the audience oriented.
+- **Skipped steps collapse** — `ui` and `config` work shows one combined `SKIP` banner for steps 4–7 instead of four separate skip lines.
+- **Silent failure for missing env** — Glacier API failures print one line and continue. Never block the PR. Never paste stack traces in front of clients.
 
 ### Recommended demo setup
 
 1. Glacier board open in a browser tab visible to the audience (full-screen)
 2. Terminal in another window
-3. Source `.env.local` into the shell so the agent's subprocesses inherit `GLACIER_*` and `VERBOSE`: `set -a; source .env.local; set +a` (Claude Code subprocesses don't auto-load `.env.local` — it's a Next.js convention, not a shell one)
-4. `export VERBOSE=true` if it isn't already in `.env.local`
-5. Pick a small linked card and run `/implement card <id>` against it
+3. Source `.env.local` into the shell so the agent's subprocesses inherit `GLACIER_*`: `set -a; source .env.local; set +a` (Claude Code subprocesses don't auto-load `.env.local` — it's a Next.js convention, not a shell one)
+4. Pick a small linked card and run `/implement-v card <id>` against it
 
 ## Installation
 
