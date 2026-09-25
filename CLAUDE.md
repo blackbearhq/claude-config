@@ -99,7 +99,22 @@ The full TDD workflow lives in the `implement` agent. Invoke via:
 - `/implement issue <issue_number>` — starts from a GitHub issue
 - `/implement <free-form prompt>` — free-form description
 
-The agent handles classification (logic/ui/config), branching, exploration, planning, TDD cycle, review, and PR prep. Board sync is automatic via the `glacier-sync` skill hooks — no manual step coordination.
+The agent handles classification (logic/ui/config), branching, exploration, planning, TDD cycle, review, and PR prep. It always runs in its own git worktree (`isolation: worktree`) and moves the Glacier card explicitly via the `glacier-sync` skill.
+
+## Workflow: Parallel Batches
+
+Plan serially, build in parallel, merge serially. Use `/triage` to run several cards/issues at once:
+
+1. **Scout** — one read-only `explorer` per item predicts files, schema/deps/config impact, and a plan
+2. **Lanes** — an item is parallel-safe only if it has no open dependencies, no schema/deps/shared-config change, and no file overlap with other parallel items. Everything else is serial
+3. **Approve** — nothing is dispatched until the lane table is approved
+4. **Build** — parallel items go to background `implement` agents, each in its own worktree, capped at the Glacier In Progress WIP limit (default 3, max 5). Only the orchestrator writes to Glacier
+5. **Merge** — one PR at a time; rebase the rest on `main` and re-run `npm run check` between merges
+
+### Repo prerequisites for worktrees
+- Add `.claude/worktrees/` to `.gitignore`
+- Add a `.worktreeinclude` at the repo root listing gitignored files each worktree needs (at minimum `.env.local`)
+- Never run schema pushes from an agent; schema work stays in the serial lane
 
 ### Classification rules
 Before implementation, the agent classifies the work:
@@ -174,7 +189,7 @@ Claude Code now has per-session effort tuning — use it instead of manually swi
 ### Agents
 - `architect` — System design, Opus, effort: xhigh. Use for new features, tradeoff analysis, cross-cutting structural changes.
 - `explorer` — Codebase exploration, Haiku, effort: low. Read-only investigation.
-- `implement` — TDD workflow entry point, Sonnet, effort: high. Supports card/issue/free-form modes.
+- `implement` — TDD workflow entry point, Sonnet, effort: high, worktree-isolated. Supports card/issue/free-form modes and batch mode from `/triage`.
 - `pr-prep` — PR description generation, Haiku, effort: low.
 
 ### Skills (auto-invoked)
@@ -184,7 +199,7 @@ Claude Code now has per-session effort tuning — use it instead of manually swi
 - `stripe-integration` — Auto-fires on Stripe-related files
 - `secret-scan` — Pre-commit leak detection
 - `deploy-checklist` — Pre-deployment verification
-- `glacier-sync` — Hook-based board sync (optional, requires env vars)
+- `glacier-sync` — Explicit Glacier board transitions (optional, requires env vars)
 
 ### Slash commands
 - `/implement` — Invokes the `implement` agent
@@ -192,4 +207,5 @@ Claude Code now has per-session effort tuning — use it instead of manually swi
 - `/skip-tests` — Bypass test steps for ui/config issues
 - `/cost-check` — Token usage, rate limits, optimization suggestions
 - `/init` — Session initialisation
-- `/glacier` — Manual Glacier operations (hooks handle automatic sync). `/glacier-sync` is kept as a deprecated alias.
+- `/triage` — Plan a batch of cards/issues, split into parallel/serial lanes, dispatch the parallel lane to worktree-isolated agents
+- `/glacier` — Manual Glacier operations (status, Done after merge, TODOs, linking). `/glacier-sync` is kept as a deprecated alias.

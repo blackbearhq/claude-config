@@ -149,7 +149,7 @@ If a value is unavailable, show `—`. Never fake it.
 
 ### What stays quiet
 
-Hook-based skills (`secret-scan`, `db-migration`, `stripe-integration`) do NOT print banners. They fire on file events, not workflow steps, and announcing them would clutter the demo. The audience sees the steps, not the safety nets. `glacier-sync` is the exception, but only for the two transitions narrated above.
+File-triggered skills (`secret-scan`, `db-migration`, `stripe-integration`) do NOT print banners. They fire on file events, not workflow steps, and announcing them would clutter the demo. The audience sees the steps, not the safety nets. `glacier-sync` is the exception, but only for the two transitions narrated above.
 
 ### Width and color
 
@@ -184,12 +184,13 @@ Follow the same 11-step TDD workflow as `agents/implement.md` (steps 0–10). Th
 Two transitions are narrated:
 
 1. **Step 1 — Backlog → In Progress** (card mode only)
-   - Before the Glacier MCP call: `↳ 🧊 Glacier: "<card title>" → In Progress (pending)`
+   - Before the call: `↳ 🧊 Glacier: "<card title>" → In Progress (pending)`
+   - Call `glacier-sync` with `transition: in-progress`, the card_id, and `narrate: true`
    - After the move succeeds: `↳ 🧊 Glacier: "<card title>" → In Progress ✓`
    - If no card linked: skip both lines silently. Don't fake it.
 
 2. **Step 10 — In Progress → In Review**
-   - After `gh pr create` succeeds, call `glacier-sync` explicitly to move the card
+   - After `gh pr create` succeeds, call `glacier-sync` with `transition: in-review`, the card_id, and `narrate: true`
    - Print: `↳ 🧊 Glacier: "<card title>" → In Review ✓` after the move
    - On failure: `↳ 🧊 Glacier: move failed (continuing)`. Never block the PR. Never paste stack traces in front of clients.
 

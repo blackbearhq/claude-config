@@ -1,36 +1,36 @@
 ---
 name: glacier-sync
-description: Hooks-based Glacier board sync. Auto-fires on branch creation, PR open, and PR merge via Claude Code hooks. Only activates when GLACIER_ENABLED=true, GLACIER_WORKSPACE_ID, and GLACIER_PROJECT_ID are set. Skips silently if not configured. Supports verbose mode for demo presentations.
+description: Glacier board sync, called explicitly with a transition (in-progress, in-review, done) by the implement agent, /implement-v, /triage, or /glacier. Only activates when GLACIER_ENABLED=true, GLACIER_WORKSPACE_ID, and GLACIER_PROJECT_ID are set. Skips silently if not configured.
 model: haiku
 effort: low
 tools: Bash, Read
-hooks:
-  FileChanged:
-    if: |
-      # Fires when .git/HEAD changes — signals branch switch / creation
-      test "$FILE_PATH" = ".git/HEAD"
-  PostCompact: true
-  CwdChanged: true
 ---
-# Glacier Sync (hooks-based)
+# Glacier Sync (explicit transitions)
 
-Keeps the Glacier board in sync with repo activity. Wires into Claude Code hooks instead of manual workflow steps — more reliable, zero cognitive load.
+Keeps the Glacier board in sync with repo activity. Callers invoke it at known workflow points with a named transition. No hooks.
 
 **Fully optional.** If env vars are missing, skip silently. Never block the parent workflow.
 
+## Why explicit, not hooks
+
+The previous version relied on a `FileChanged` hook on `.git/HEAD`. It was unreliable and cannot work with parallel runs:
+
+- `FileChanged` matchers take literal filenames, and `if` only applies to tool events, so the shell-test condition was ignored.
+- Skill hooks register only after the skill is invoked, so the first branch creation in a session was missed.
+- In a git worktree `.git` is a file and HEAD lives under the main repo's `.git/worktrees/<name>/`, so the hook never fires for worktree-isolated agents.
+
+Explicit calls at fixed workflow steps are deterministic and work the same in the main checkout, in worktrees, and in parallel batches.
+
 ## Activation conditions
 
-All four must be true:
-1. Skill is enabled in the session
-2. `GLACIER_ENABLED=true`
-3. `GLACIER_WORKSPACE_ID` is set
-4. `GLACIER_PROJECT_ID` is set
-
-If any fails → silent skip.
+All must be true, otherwise silent skip:
+1. `GLACIER_ENABLED=true`
+2. `GLACIER_WORKSPACE_ID` is set
+3. `GLACIER_PROJECT_ID` is set
 
 ## Configuration
 
-In `.env.local` (gitignored):
+In `.env.local` (gitignored — list it in `.worktreeinclude` so worktrees get a copy):
 
 ```
 GLACIER_ENABLED=true
@@ -42,114 +42,85 @@ MCP server URL is hardcoded: `https://www.getglacier.ai/api/mcp`
 
 Column IDs resolve at runtime via `Glacier:list_columns` — no stored IDs, board can be restructured freely.
 
-## Hook triggers
+## Invocation contract
 
-### `FileChanged` on `.git/HEAD`
-Fires when branch is created or switched.
+Callers pass:
 
-1. Read new HEAD: `git rev-parse --abbrev-ref HEAD`
-2. Extract issue number from branch name (patterns: `feat/issue-42-*`, `fix/42-*`, `*/issue-42`, `#42`)
-3. If issue number found:
-   - Find Glacier card linked to that GitHub issue via `Glacier:list_cards` + `Glacier:get_card_github_status`
-   - If card is in **Backlog** or **Ready** → move to **In Progress**
-   - If already In Progress or later → do nothing (don't regress)
-   - Check WIP limit before moving; warn if at limit
-4. Report (see Output formatting below)
-5. If no issue number or no matching card → silent skip
+| Input | Required | Values |
+|-------|----------|--------|
+| `transition` | yes | `in-progress`, `in-review`, `done` |
+| `card_id` | preferred | Glacier card UUID (skip matching when provided) |
+| `issue` | fallback | GitHub issue number, used to find the card |
+| `narrate` | no | `true` when called from `/implement-v` (demo formatting) |
 
-### `CwdChanged`
-Fires when the working directory changes (e.g. switching worktrees).
+### Who calls what
 
-1. Re-resolve column IDs for the new project context (column cache is per-session)
-2. No board action — just cache refresh
+| Transition | Caller | When |
+|------------|--------|------|
+| `in-progress` | `implement` agent / `/implement-v` | Right after the feature branch is created (step 1) |
+| `in-progress` | `/triage` | For every card in a batch, before agents are dispatched |
+| `in-review` | `implement` agent / `/implement-v` / `/triage` | After `gh pr create` succeeds |
+| `done` | `/glacier` (PR sync) | After merge — merges happen outside Claude Code |
 
-### `PostCompact`
-Fires after conversation compaction.
+**Single writer rule for batches:** when `/triage` dispatches parallel agents, it passes `glacier: orchestrator` to each agent, and the agents make no Glacier writes. The orchestrator performs all transitions. This avoids concurrent writes and WIP-limit races.
 
-1. Re-resolve column IDs (cache may have been compacted out)
-2. No board action
+## Transition rules
+
+1. Resolve columns (cached per session): match names case-insensitively — "Backlog", "Ready", "In Progress", "In Review", "Done".
+2. Resolve the card: `card_id` if given, else match via `issue` (see Card matching).
+3. Never regress a card. Allowed moves:
+   - `in-progress`: from Backlog or Ready
+   - `in-review`: from Backlog, Ready, or In Progress
+   - `done`: from In Review (or In Progress if the PR is already merged)
+   - Card already in the target column or later → no-op, print nothing.
+4. Check the WIP limit of the target column. If at limit, warn in one line and still move only if the caller said `force_wip: true`; otherwise skip and report.
+5. Move with `Glacier:update_card`.
+
+## Card matching strategy
+
+In order of reliability:
+1. **Explicit `card_id`** from the caller
+2. **GitHub issue link** — `Glacier:list_cards` + `Glacier:get_card_github_status`, match the issue URL/number
+3. **Title fuzzy match** — manual `/glacier` runs only, ask for confirmation
+
+No confident match → silent skip. Never create cards from a transition call.
 
 ## Output formatting
 
-This skill detects whether the parent session is in verbose mode by checking:
-- `VERBOSE=true` in env, OR
-- a `.claude/verbose` flag file at the repo root (set by the implement agent when `[verbose]` is parsed)
-
-### Default (verbose OFF)
+### Default
 Single compact line, only on actual moves:
 
 ```
 Glacier: "Stripe webhook retry logic" → In Progress
 ```
 
-No line when nothing moves (already in target column, no card matched, etc.).
-
-### Verbose ON (demo mode)
-Use the `↳ Glacier:` prefix to visually link the board event to the implement agent's step banner above it. Three states:
+### `narrate: true` (called from `/implement-v`)
 
 ```
-↳ Glacier: "Stripe webhook retry logic" → In Progress (pending)
-↳ Glacier: "Stripe webhook retry logic" → In Progress ✓
-↳ Glacier: move failed (continuing) — <one-line reason>
+↳ 🧊 Glacier: "Stripe webhook retry logic" → In Progress ✓
+↳ 🧊 Glacier: move failed (continuing) — <one-line reason>
 ```
 
-- `(pending)` is printed by the implement agent BEFORE the action that triggers the hook
-- `✓` is printed by this skill AFTER the move completes successfully
-- `move failed` is printed on error — never paste stack traces, just one-line context
+`/implement-v` prints the `(pending)` line itself before calling this skill. Print nothing for no-ops, unmatched cards, or disabled Glacier — silence is correct.
 
-The two-line beat (pending → ✓) is the demo wow moment: audience sees the announcement, looks at the board, watches the card move, sees the confirmation. Don't collapse it into a single line.
+## Manual operations (via `/glacier`)
 
-### When NOT to print in verbose mode
-- Card already in target column (no-op move) — skip silently, the implement agent won't have printed `(pending)` either
-- No card linked to the issue — skip silently
-- Glacier disabled — skip silently
-
-Do not print "skipped" lines for these cases. Silence is correct.
-
-## Manual triggers (via `/glacier-sync` command)
-
-Still available for on-demand operations that hooks don't cover:
 - **Status**: board overview (cards per column, WIP limits, blockers)
-- **PR merged → Done**: scan recent merges, move matching cards (gh doesn't fire a local hook for this)
+- **PR merged → Done**: scan recent merges, move matching cards
 - **TODO scanning**: scan `// TODO(glacier):` comments in branch diff, create cards
 - **Issue linking**: link a GitHub issue to an existing card
 
-## PR lifecycle (no local hook available)
-
-`gh pr create` and PR merges happen outside Claude Code, so hooks can't catch them directly. Two options:
-
-1. **The `implement` agent calls this skill explicitly** after `gh pr create` succeeds → move card to **In Review**. The agent passes `verbose=true` if it's in verbose mode so the `↳ Glacier:` prefix is used.
-2. **User runs `/glacier-sync`** after merging → move card to **Done**. Verbose mode applies the same way if active.
-
-If the Glacier MCP ever exposes a webhook relay, this could also become fully automatic.
-
 ## MCP call pattern
 
-EVERY Glacier MCP call must include `workspace_id` from `GLACIER_WORKSPACE_ID` env var (OAuth tokens are user-scoped, not workspace-scoped).
+EVERY Glacier MCP call must include `workspace_id` from `GLACIER_WORKSPACE_ID` (OAuth tokens are user-scoped, not workspace-scoped).
 
 Example: `Glacier:list_columns(project_id: $GLACIER_PROJECT_ID, workspace_id: $GLACIER_WORKSPACE_ID)`
 
-## Column resolution (cached per-session)
-
-1. Call `Glacier:list_columns` once per session (or after `CwdChanged` / `PostCompact`)
-2. Match names case-insensitively: "Backlog", "Ready", "In Progress", "In Review", "Done"
-3. Cache the mapping — don't re-fetch on every trigger
-
-## Card matching strategy
-
-In order of reliability:
-1. **GitHub issue link** — `Glacier:get_card_github_status` check for issue URL match
-2. **Issue number in branch name** — match `feat/issue-42-*` to cards with issue #42 linked
-3. **Title fuzzy match** — last resort, ask for confirmation
-
-If no match → silent skip. Do not create cards automatically from branch creation.
-
 ## MCP tools used
-
-All require `workspace_id` from env:
 
 - `Glacier:list_columns` — column IDs and WIP status
 - `Glacier:list_cards` — find cards by project
+- `Glacier:get_card` — card details
 - `Glacier:get_card_github_status` — verify GitHub issue/PR links
 - `Glacier:update_card` — move between columns
 - `Glacier:create_card` — from TODOs (manual only)
@@ -157,10 +128,9 @@ All require `workspace_id` from env:
 
 ## Rules
 
-- Always pass `workspace_id` to every MCP call. Never omit.
-- Never move a card without a confident match. Ambiguous → skip silently on auto-triggers, ask on manual.
-- Never regress a card (Done → In Review, etc.)
-- Respect WIP limits — warn before moving into an at-limit column
-- Report concisely: card title + action + column. One line.
-- NEVER block the parent workflow. If anything fails, warn and continue.
-- In verbose mode: use the `↳ Glacier:` prefix for visual linkage with the implement agent's step banners. In default mode: use the `Glacier:` prefix as before.
+- Always pass `workspace_id` to every MCP call.
+- Never move a card without a confident match.
+- Never regress a card.
+- Respect WIP limits.
+- One line per move. No stack traces.
+- NEVER block the parent workflow. If anything fails, warn in one line and continue.

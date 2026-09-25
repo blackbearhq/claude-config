@@ -25,23 +25,24 @@ When you install this configuration, Claude Code will automatically:
   - `stripe-integration` — Webhook verification, idempotency, test vs live mode checks
   - `secret-scan` — Pre-commit leak detection (Stripe keys, .env, tokens)
   - `deploy-checklist` — Pre-deployment verification for Vercel/Next.js
-  - `glacier-sync` — Hook-based Glacier board sync (optional, env-gated)
+  - `glacier-sync` — Explicit Glacier board transitions (optional, env-gated)
 - **agents/** — Specialized agents with scoped effort and turn limits
   - `architect` (Opus, xhigh) — System design and cross-cutting changes
   - `explorer` (Haiku, low) — Fast codebase exploration
-  - `implement` (Sonnet, high) — Main TDD implementation agent (silent; use `/implement-v` for narrated demo runs)
+  - `implement` (Sonnet, high) — Main TDD implementation agent, worktree-isolated (silent; use `/implement-v` for narrated demo runs)
   - `pr-prep` (Haiku, low) — PR description generation
 - **commands/** — Workflow slash commands
   - `/implement` — Full TDD workflow, silent (card/issue/free-form modes)
+  - `/triage` — Plan a batch, split into parallel/serial lanes, dispatch parallel work to worktree-isolated agents
   - `/implement-v` — Same workflow, narrated inline in the main terminal (for demos and live presentations)
   - `/init` — Session initialization
   - `/cost-check` — Token usage, rate limits, optimizations
   - `/skip-tests` — Bypass tests for ui/config issues
   - `/glacier` — Manual Glacier operations (alias: `/glacier-sync` kept for back-compat)
 
-## Glacier Sync (opt-in, hooks-based)
+## Glacier Sync (opt-in)
 
-The `glacier-sync` skill bridges GitHub workflow to [Glacier](https://getglacier.ai) boards via MCP — now via Claude Code hooks for reliability.
+The `glacier-sync` skill bridges GitHub workflow to [Glacier](https://getglacier.ai) boards via MCP, with explicit transitions at fixed workflow steps.
 
 ### Enable for a project
 
@@ -57,21 +58,17 @@ To find your IDs: open Glacier → Project Settings → copy the workspace ID an
 
 The MCP server URL (`https://www.getglacier.ai/api/mcp`) is hardcoded. Column IDs are resolved dynamically at runtime via `list_columns`, so the board can be restructured without config changes.
 
-### Auto-triggers (via Claude Code hooks)
+### Board transitions (explicit, no hooks)
 
-| Hook | What fires it | Glacier transition |
-|------|---------------|-------------------|
-| `FileChanged` on `.git/HEAD` | Branch creation or switch | Ready / Backlog → **In Progress** |
-| `CwdChanged` | Working directory change | Refresh column cache |
-| `PostCompact` | Conversation compaction | Refresh column cache |
+| Transition | Called by | When |
+|------------|-----------|------|
+| Backlog / Ready → **In Progress** | `implement` agent, `/implement-v`, `/triage` | Feature branch created (or batch dispatched) |
+| In Progress → **In Review** | `implement` agent, `/implement-v`, `/triage` | `gh pr create` succeeds |
+| In Review → **Done** | `/glacier` (PR sync) | After merge |
 
-Card matching uses GitHub issue links first, then issue number in branch name, then title fuzzy match.
+Earlier versions used a `FileChanged` hook on `.git/HEAD`. It did not fire reliably and cannot work in git worktrees, so it was replaced with explicit calls at fixed workflow steps.
 
-### Not covered by local hooks
-
-PR open and PR merge happen outside Claude Code, so they're handled two ways:
-- `implement` agent explicitly calls the skill after `gh pr create` succeeds (→ In Review)
-- User runs `/glacier` after merging (→ Done)
+Card matching uses the explicit card ID first, then GitHub issue links. During a `/triage` batch, only the orchestrator writes to Glacier.
 
 ### Manual capabilities via `/glacier`
 
@@ -85,6 +82,31 @@ PR open and PR merge happen outside Claude Code, so they're handled two ways:
 ### Disable for a project
 
 Remove the env vars or set `GLACIER_ENABLED=false`. The skill skips silently when env vars are missing — it never blocks the workflow.
+
+## Parallel Batches (`/triage`)
+
+Plan serially, build in parallel, merge serially.
+
+```
+/triage ready            # every card in the Ready column
+/triage issue 41 issue 42 issue 47 wip=2
+```
+
+1. **Scout** — one read-only Haiku `explorer` per item predicts files touched, schema/deps/shared-config impact, and a plan.
+2. **Lanes** — parallel-safe only if: no open dependencies (GitHub "blocked by", Glacier parent/child), no schema, dependency or shared-config change, and no file overlap with other parallel items. Everything else is serial.
+3. **Approve** — you review one lane table and the plans. Nothing runs before approval.
+4. **Build** — each parallel item goes to a background `implement` agent in its own git worktree, capped at the Glacier In Progress WIP limit (default 3, max 5). Agents open their own PRs; only the orchestrator moves cards.
+5. **Merge** — one PR at a time. Rebase the rest on `main` and re-run `npm run check` between merges. Serial items follow with `/implement`.
+
+### Repo prerequisites
+
+```
+# .gitignore
+.claude/worktrees/
+
+# .worktreeinclude — gitignored files copied into every new worktree
+.env.local
+```
 
 ## Demo Mode
 
@@ -143,7 +165,7 @@ The `(pending)` → `✓` two-line beat on Glacier transitions is intentional: a
 ### Behaviour notes
 
 - **Glacier narration is opt-in twice** — needs both `/implement-v` AND a working Glacier setup (env vars + linked card). Missing either → silent skip, no error noise for the audience.
-- **Hook-based skills stay quiet** — `secret-scan`, `db-migration`, `stripe-integration` don't print banners. They fire on file events, not workflow steps.
+- **File-triggered skills stay quiet** — `secret-scan`, `db-migration`, `stripe-integration` don't print banners. They fire on file events, not workflow steps.
 - **Skipped steps collapse** — `ui` and `config` work shows one combined `SKIP` banner for steps 4–7 instead of four separate skip lines.
 - **Silent failure for missing env** — Glacier API failures print one line and continue. Never block the PR. Never paste stack traces in front of clients.
 
