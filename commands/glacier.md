@@ -1,6 +1,6 @@
 ---
 name: glacier
-description: Manual Glacier board operations — board status, PR sync, TODO scanning, issue linking. Automatic board transitions (branch → In Progress) are handled by the glacier-sync skill via hooks.
+description: Manual Glacier board operations — board status, PR sync, TODO scanning, issue linking. Workflow transitions (In Progress, In Review) are called explicitly by the implement agent, /implement-v and /triage; use this command for status, Done after merge, TODOs and linking.
 ---
 
 Run the glacier-sync skill for manual operations:
