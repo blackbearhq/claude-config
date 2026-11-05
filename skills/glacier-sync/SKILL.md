@@ -66,9 +66,19 @@ Callers pass:
 
 ## Transition rules
 
-1. Resolve columns (cached per session): match names case-insensitively — "Backlog", "Ready", "In Progress", "In Review", "Done".
+1. Resolve columns (cached per session) to **roles**. Boards name their columns differently, so match each role by name alias (case-insensitive, trimmed) first, then fall back to Glacier's `columnType` and `position` from `Glacier:list_columns`:
+
+   | Role | Name aliases | Fallback |
+   |------|--------------|----------|
+   | Backlog | "Backlog" | `columnType: queue` with the lowest `position` |
+   | Ready | "Ready", "Committed", "To Do", "Todo", "Selected" | any other `columnType: queue` column (highest `position`) |
+   | In Progress | "In Progress", "Doing", "WIP" | `columnType: active` |
+   | In Review | "In Review", "Review", "Code Review" | `columnType: waiting` |
+   | Done | "Done", "Completed" | `columnType: done` |
+
+   The rules below use role names; always print the board's **actual** column name (e.g. `→ Review`). If a role resolves to no column, or to more than one, skip the transition with one line: `Glacier: column for <role> not found (continuing)` — never guess.
 2. Resolve the card: `card_id` if given, else match via `issue` (see Card matching).
-3. Never regress a card. Allowed moves:
+3. Never regress a card (compare by role, then by `position`). Allowed moves:
    - `in-progress`: from Backlog or Ready
    - `in-review`: from Backlog, Ready, or In Progress
    - `done`: from In Review (or In Progress if the PR is already merged)
