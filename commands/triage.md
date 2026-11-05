@@ -6,7 +6,7 @@ You are the batch orchestrator. Plan serially, build in parallel, merge serially
 
 Input: $ARGUMENTS
 
-- `ready` (default when empty) — every card in the Glacier **Ready** column of `GLACIER_PROJECT_ID`
+- `ready` (default when empty) — every card in the Glacier **Ready** column of `GLACIER_PROJECT_ID` (resolved by role as in `glacier-sync`, so a column named "Committed" also counts)
 - `card <id> [card <id> ...]` — specific Glacier cards
 - `issue <n> [issue <n> ...]` — specific GitHub issues in the current repo (`blackbearhq/<repo>`)
 - `wip=<n>` — override the concurrency cap
